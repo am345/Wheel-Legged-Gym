@@ -33,7 +33,7 @@ from .base_config import BaseConfig
 
 class LeggedRobotCfg(BaseConfig):
     class env:
-        num_envs = 512
+        num_envs = 2048
         num_observations = 27
         num_privileged_obs = (
             num_observations + 7 * 11 + 3 + 6 * 5 + 3 + 3
@@ -98,7 +98,7 @@ class LeggedRobotCfg(BaseConfig):
         class ranges:
             lin_vel_x = [-1.0, 1.0]  # min max [m/s]
             ang_vel_yaw = [-3.14, 3.14]  # min max [rad/s]
-            height = [0.1, 0.25]
+            height = [0.25, 0.25]
             heading = [-3.14, 3.14]
 
     class init_state:
@@ -179,7 +179,7 @@ class LeggedRobotCfg(BaseConfig):
             tracking_lin_vel_enhance = 1
             tracking_ang_vel = 1.0
 
-            base_height = -7.0
+            base_height = 3.0
             nominal_state = -0.1
             lin_vel_z = -2.0
             ang_vel_xy = -0.05
@@ -191,7 +191,7 @@ class LeggedRobotCfg(BaseConfig):
             action_rate = -0.01
             action_smooth = -0.01
 
-            collision = -0.0
+            collision = -1.0
             dof_pos_limits = -1.0
 
         only_positive_rewards = False  # if true negative total rewards are clipped at zero (avoids early termination problems)
