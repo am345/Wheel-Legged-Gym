@@ -15,7 +15,6 @@ import numpy as np
 import torch
 
 
-# --- 新增: 键盘控制器类 ---
 class KeyboardController:
     def __init__(self, env):
         self.gym = env.gym
@@ -24,21 +23,38 @@ class KeyboardController:
         
         self.subscribe_keyboard_events()
         
-        # 初始指令 [Lin_Vel_X, Ang_Vel_Yaw, Height]
+        # 初始指令: [Lin_Vel_X, Ang_Vel_Yaw, Height]
         self.command = np.array([0.0, 0.0, 0.25])
         
-        # 控制步长
-        self.lin_vel_step = 0.1
-        self.ang_vel_step = 0.2
-        self.height_step = 0.01
-
-        print("\n" + "=" * 30)
-        print("🎮 键盘控制已启动")
-        print("W/S: 前后移动 (Velocity X)")
-        print("A/D: 左右旋转 (Yaw Rate)")
-        print("Q/E: 调整高度 (Height)")
-        print("SPACE: 停止 (Stop)")
-        print("=" * 30 + "\n")
+        # 控制步长（普通模式）
+        self.lin_vel_step = 0.02
+        self.ang_vel_step = 0.05
+        self.height_step = 0.002
+        
+        # --- 新增: 自旋速度设定 ---
+        self.spin_velocity = 2.5 # 按住 Shift 时的自转速度 (rad/s)
+        
+        # 按键状态记录
+        self.key_states = {
+            "FORWARD": False,
+            "BACKWARD": False,
+            "LEFT": False,
+            "RIGHT": False,
+            "UP": False,
+            "DOWN": False,
+            "SPIN_MODE": False # 新增 Shift 状态
+        }
+        
+        print("\n" + "="*30)
+        print("🎮 键盘控制 (增强版)")
+        print("------------------------------")
+        print("   W/S     : 持续加速/减速")
+        print("   A/D     : 持续左转/右转")
+        print("   Q/E     : 持续升高/降低")
+        print("   L_SHIFT : [原地自旋] (速度归零+高速旋转)")
+        print("   SPACE   : 急停 (归零)")
+        print("   R       : 重置环境")
+        print("="*30 + "\n")
 
     def subscribe_keyboard_events(self):
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_W, "FORWARD")
@@ -48,34 +64,56 @@ class KeyboardController:
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_Q, "UP")
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_E, "DOWN")
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_SPACE, "STOP")
+        self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_R, "RESET")
+        
+        # --- 新增: 监听左 Shift 键 ---
+        self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_LEFT_SHIFT, "SPIN_MODE")
 
     def get_command(self):
+        # 1. 更新按键状态
         for evt in self.gym.query_viewer_action_events(self.viewer):
-            if evt.value > 0:  # 按下事件
-                if evt.action == "FORWARD":
-                    self.command[0] += self.lin_vel_step
-                elif evt.action == "BACKWARD":
-                    self.command[0] -= self.lin_vel_step
-                elif evt.action == "LEFT":
-                    self.command[1] += self.ang_vel_step
-                elif evt.action == "RIGHT":
-                    self.command[1] -= self.ang_vel_step
-                elif evt.action == "UP":
-                    self.command[2] += self.height_step
-                elif evt.action == "DOWN":
-                    self.command[2] -= self.height_step
-                elif evt.action == "STOP":
-                    self.command[0] = 0.0
-                    self.command[1] = 0.0
-        
-        # 简单的范围限制，防止数值飞出
+            if evt.action == "STOP" and evt.value > 0:
+                self.command[0] = 0.0
+                self.command[1] = 0.0
+                continue
+            elif evt.action == "RESET" and evt.value > 0:
+                self.env.reset_idx(torch.arange(self.env.num_envs, device=self.env.device))
+                continue
+            
+            if evt.action in self.key_states:
+                self.key_states[evt.action] = (evt.value > 0)
+
+        # 2. 核心逻辑：优先判断 Shift 模式
+        if self.key_states["SPIN_MODE"]:
+            # --- Shift 模式逻辑 ---
+            self.command[0] = 0.0  # 强制线速度为 0 (原地)
+            self.command[1] = self.spin_velocity # 强制设定为固定的自转角速度
+            # 如果你想反向转，可以改成 -self.spin_velocity
+            
+        else:
+            # --- 普通模式逻辑 (只有没按 Shift 时才生效) ---
+            if self.key_states["FORWARD"]:
+                self.command[0] += self.lin_vel_step
+            if self.key_states["BACKWARD"]:
+                self.command[0] -= self.lin_vel_step
+                
+            if self.key_states["LEFT"]:
+                self.command[1] += self.ang_vel_step
+            if self.key_states["RIGHT"]:
+                self.command[1] -= self.ang_vel_step
+
+        # 始终允许高度调整
+        if self.key_states["UP"]:
+            self.command[2] += self.height_step
+        if self.key_states["DOWN"]:
+            self.command[2] -= self.height_step
+
+        # 3. 限制范围
         self.command[0] = np.clip(self.command[0], -2.5, 2.5)
-        self.command[1] = np.clip(self.command[1], -3.0, 3.0)
+        self.command[1] = np.clip(self.command[1], -5.0, 5.0) # 稍微放宽角速度上限以允许快速自转
         self.command[2] = np.clip(self.command[2], 0.1, 0.5)
-
+        
         return self.command
-# -------------------------
-
 
 def play(args):
     env_cfg, train_cfg = task_registry.get_cfgs(name=args.task)
