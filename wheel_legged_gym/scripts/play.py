@@ -29,11 +29,11 @@ class KeyboardController:
         # 控制步长（普通模式）
         self.lin_vel_step = 0.02
         self.ang_vel_step = 0.05
-        self.height_step = 0.002
+        self.height_step = 0.01
         
         # --- 新增: 自旋速度设定 ---
-        self.spin_velocity = 2.5 # 按住 Shift 时的自转速度 (rad/s)
-        
+        self.spin_velocity = 7.5  # 按住 Shift 时的自转速度 (rad/s)
+        self.normal_ang_vel_limit = 2.5  # 普通模式的角速度上限（限制AD转向）
         # 按键状态记录
         self.key_states = {
             "FORWARD": False,
@@ -45,16 +45,16 @@ class KeyboardController:
             "SPIN_MODE": False # 新增 Shift 状态
         }
         
-        print("\n" + "="*30)
-        print("🎮 键盘控制 (增强版)")
-        print("------------------------------")
-        print("   W/S     : 持续加速/减速")
-        print("   A/D     : 持续左转/右转")
-        print("   Q/E     : 持续升高/降低")
-        print("   L_SHIFT : [原地自旋] (速度归零+高速旋转)")
-        print("   SPACE   : 急停 (归零)")
-        print("   R       : 重置环境")
-        print("="*30 + "\n")
+        # print("\n" + "="*30)
+        # print("🎮 键盘控制 (增强版)")
+        # print("------------------------------")
+        # print("   W/S     : 持续加速/减速")
+        # print("   A/D     : 持续左转/右转")
+        # print("   Q/E     : 持续升高/降低")
+        # print("   L_SHIFT : [原地自旋] (速度归零+高速旋转)")
+        # print("   SPACE   : 急停 (归零)")
+        # print("   R       : 重置环境")
+        # print("="*30 + "\n")
 
     def subscribe_keyboard_events(self):
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_W, "FORWARD")
@@ -67,7 +67,7 @@ class KeyboardController:
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_R, "RESET")
         
         # --- 新增: 监听左 Shift 键 ---
-        self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_LEFT_SHIFT, "SPIN_MODE")
+        self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_C, "SPIN_MODE")
 
     def get_command(self):
         # 1. 更新按键状态
@@ -108,11 +108,19 @@ class KeyboardController:
         if self.key_states["DOWN"]:
             self.command[2] -= self.height_step
 
-        # 3. 限制范围
+                # 3. 限制范围
         self.command[0] = np.clip(self.command[0], -2.5, 2.5)
-        self.command[1] = np.clip(self.command[1], -5.0, 5.0) # 稍微放宽角速度上限以允许快速自转
-        self.command[2] = np.clip(self.command[2], 0.1, 0.5)
-        
+
+        # 根据是否按下 Shift 选择角速度上限
+        if self.key_states["SPIN_MODE"]:
+            # Shift 模式：允许高角速度
+            self.command[1] = np.clip(self.command[1], -11.5, 11.5)
+        else:
+            # 普通模式：AD 转向受限
+            self.command[1] = np.clip(self.command[1], -self.normal_ang_vel_limit, self.normal_ang_vel_limit)
+
+        self.command[2] = np.clip(self.command[2], 0.13, 0.30)
+                
         return self.command
 
 def play(args):
@@ -279,6 +287,6 @@ def play(args):
 if __name__ == "__main__":
     EXPORT_POLICY = True
     RECORD_FRAMES = False
-    MOVE_CAMERA = False
+    MOVE_CAMERA = True
     args = get_args()
     play(args)
