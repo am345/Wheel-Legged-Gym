@@ -1001,7 +1001,7 @@ class LeggedRobot(BaseTask):
             [
                 self.obs_scales.lin_vel,
                 self.obs_scales.ang_vel,
-                self.obs_scales.height_measurements,
+                self.obs_scales.height_command,
             ],
             device=self.device,
             requires_grad=False,
@@ -1646,7 +1646,7 @@ class LeggedRobot(BaseTask):
             return torch.abs(self.base_height - self.commands[:, 2])
         else:
             base_height_error = torch.square(self.base_height - self.commands[:, 2])
-            return torch.exp(-base_height_error / 0.001)
+            return torch.exp(-base_height_error / 0.01)
 
     def _reward_base_height_enhance(self):
         base_height_error = torch.square(self.base_height - self.commands[:, 2])
