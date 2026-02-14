@@ -12,6 +12,7 @@ from wheel_legged_gym.envs import *
 from wheel_legged_gym.utils import get_args, export_policy_as_jit, task_registry, Logger
 
 import numpy as np
+import csv
 import torch
 
 
@@ -196,6 +197,29 @@ def play(args):
     # 初始化键盘控制器
     controller = KeyboardController(env)
 
+    # --- log to csv for debugging ---
+    log_dir = os.path.join(
+        WHEEL_LEGGED_GYM_ROOT_DIR,
+        "logs",
+        train_cfg.runner.experiment_name,
+        "exported",
+    )
+    os.makedirs(log_dir, exist_ok=True)
+    csv_path = os.path.join(log_dir, "play_height_log.csv")
+    csv_file = open(csv_path, "w", newline="")
+    csv_writer = csv.writer(csv_file)
+    csv_writer.writerow(
+        [
+            "step",
+            "command_height",
+            "base_height",
+            "L0_left",
+            "L0_right",
+            "theta0_left",
+            "theta0_right",
+        ]
+    )
+
     for i in range(1000 * int(env.max_episode_length)):
         if ppo_runner.alg.actor_critic.is_sequence:
             actions, latent = policy(obs, obs_history)
@@ -223,6 +247,19 @@ def play(args):
         # if CoM_offset_compensate: ... (已通过设置 False 禁用)
 
         obs, _, rews, dones, infos, obs_history = env.step(actions)
+
+        # write log (env 0)
+        csv_writer.writerow(
+            [
+                i,
+                env.commands[robot_index, 2].item(),
+                env.base_height[robot_index].item(),
+                env.L0[robot_index, 0].item(),
+                env.L0[robot_index, 1].item(),
+                env.theta0[robot_index, 0].item(),
+                env.theta0[robot_index, 1].item(),
+            ]
+        )
         
         if RECORD_FRAMES:
             if i % 2:
@@ -282,6 +319,9 @@ def play(args):
                     logger.log_rewards(infos["episode"], num_episodes)
         elif i == stop_rew_log:
             logger.print_rewards()
+
+    csv_file.close()
+    print(f"Wrote log to: {csv_path}")
 
 
 if __name__ == "__main__":
