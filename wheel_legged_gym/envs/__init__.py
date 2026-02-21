@@ -40,6 +40,11 @@ from .wheel_legged_vmc_flat.wheel_legged_vmc_flat_config import (
     WheelLeggedVMCFlatCfg,
     WheelLeggedVMCFlatCfgPPO,
 )
+from .wheel_legged_vmc_balance.wheel_legged_vmc_balance import LeggedRobotVMCBalance
+from .wheel_legged_vmc_balance.wheel_legged_vmc_balance_config import (
+    WheelLeggedVMCBalanceCfg,
+    WheelLeggedVMCBalanceCfgPPO,
+)
 
 
 import os
@@ -57,4 +62,10 @@ task_registry.register(
     LeggedRobotVMC,
     WheelLeggedVMCFlatCfg(),
     WheelLeggedVMCFlatCfgPPO(),
+)
+task_registry.register(
+    "wheel_legged_vmc_balance",
+    LeggedRobotVMCBalance,
+    WheelLeggedVMCBalanceCfg(),
+    WheelLeggedVMCBalanceCfgPPO(),
 )
