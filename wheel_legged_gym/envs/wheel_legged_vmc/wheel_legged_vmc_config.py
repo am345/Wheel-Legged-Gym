@@ -50,8 +50,8 @@ class WheelLeggedVMCCfg(WheelLeggedCfg):
 
         kp_theta = 10.0  # [N*m/rad]
         kd_theta = 5  # [N*m*s/rad]5
-        kp_l0 = 1000.0  # [N/m]
-        kd_l0 = 15  # [N*s/m]
+        kp_l0 = 800.0  # [N/m]
+        kd_l0 = 7  # [N*s/m]
 
         # PD Drive parameters:
         stiffness = {"f0": 0.0, "f1": 0.0, "wheel": 0}  # [N*m/rad]

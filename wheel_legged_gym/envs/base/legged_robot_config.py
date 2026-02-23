@@ -33,7 +33,7 @@ from .base_config import BaseConfig
 
 class LeggedRobotCfg(BaseConfig):
     class env:
-        num_envs = 512
+        num_envs = 4096
         num_observations = 27
         num_privileged_obs = (
             num_observations + 7 * 11 + 3 + 6 * 5 + 3 + 3
@@ -298,7 +298,7 @@ class LeggedRobotCfgPPO(BaseConfig):
         )
         algorithm_class_name = "PPO"
         num_steps_per_env = 48  # per iteration
-        max_iterations = 2000  # number of policy updates
+        max_iterations = 1000  # number of policy updates
 
         # logging
         save_interval = 100  # check for potential saves every this many iterations
