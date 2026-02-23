@@ -215,7 +215,7 @@ class LeggedRobot(BaseTask):
             > 10.0,
             dim=1,
         )
-        fail_buf |= self.projected_gravity[:, 2] > -0.1
+        fail_buf |= self.projected_gravity[:, 2] > -0.5  # 修复: 从 -0.1 改为 -0.5 (约 60 度终止)
         self.fail_buf *= fail_buf
         self.fail_buf += fail_buf
         self.time_out_buf = (
@@ -1646,7 +1646,7 @@ class LeggedRobot(BaseTask):
             return torch.abs(self.base_height - self.commands[:, 2])
         else:
             base_height_error = torch.square(self.base_height - self.commands[:, 2])
-            return torch.exp(-base_height_error / 0.01)
+            return torch.exp(-base_height_error / 0.05)  # 修复: 从 0.01 改为 0.05 减缓衰减
 
     def _reward_base_height_enhance(self):
         base_height_error = torch.square(self.base_height - self.commands[:, 2])

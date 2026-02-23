@@ -1,78 +1,259 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
-# Quick play script for wheel_legged_vmc_balance:
-# - Starts in “power off” (ready_for_control=False, zero actions).
-# - Press 'C' to enable control (ready_for_control=True) and start policy.
-# - Press 'R' to reset (back to power-off).
+# Enhanced play script for wheel_legged_vmc_balance with real-time monitoring
+#
+# Keyboard Controls:
+# - 'C': Enable control (start policy)
+# - 'R': Reset environment
+# - 'S': Toggle statistics display
+# - 'P': Pause/Resume
+# - 'ESC': Exit
 
 import os
+import time
 from isaacgym import gymapi
 import torch
+import numpy as np
 
-import wheel_legged_gym.envs  # ensure env package initializes before task_registry to avoid circular import
+import wheel_legged_gym.envs
 from wheel_legged_gym.utils import get_args, task_registry
 from wheel_legged_gym import WHEEL_LEGGED_GYM_ROOT_DIR
+
+
+class BalanceMonitor:
+    """Real-time monitoring for robot balance"""
+
+    def __init__(self):
+        self.reset_stats()
+        self.show_stats = True
+
+    def reset_stats(self):
+        self.episode_count = 0
+        self.success_count = 0
+        self.total_steps = 0
+        self.episode_steps = 0
+        self.episode_start_time = time.time()
+        self.max_episode_length = 0
+        self.height_history = []
+        self.orientation_history = []
+        self.episode_lengths = []
+
+    def update(self, env):
+        """Update statistics"""
+        self.episode_steps += 1
+        self.total_steps += 1
+        height = env.base_height[0].item()
+        gravity = env.projected_gravity[0].cpu().numpy()
+        self.height_history.append(height)
+        self.orientation_history.append(gravity)
+        if len(self.height_history) > 1000:
+            self.height_history.pop(0)
+            self.orientation_history.pop(0)
+
+    def on_reset(self, success=False):
+        """Called when episode ends"""
+        self.episode_lengths.append(self.episode_steps)
+        self.max_episode_length = max(self.max_episode_length, self.episode_steps)
+        if success:
+            self.success_count += 1
+        self.episode_count += 1
+        self.episode_steps = 0
+        self.episode_start_time = time.time()
+        if len(self.episode_lengths) > 100:
+            self.episode_lengths.pop(0)
+
+    def print_stats(self, env, started):
+        """Print statistics to console"""
+        if not self.show_stats or self.total_steps % 50 != 0:
+            return
+
+        os.system('clear' if os.name == 'posix' else 'cls')
+
+        height = env.base_height[0].item()
+        target_height = env.commands[0, 2].item()
+        height_error = abs(height - target_height)
+        gravity = env.projected_gravity[0].cpu().numpy()
+        roll = np.arctan2(gravity[0], -gravity[2]) * 180 / np.pi
+        pitch = np.arctan2(gravity[1], -gravity[2]) * 180 / np.pi
+        lin_vel = env.base_lin_vel[0].cpu().numpy()
+        ang_vel = env.base_ang_vel[0].cpu().numpy()
+        tilt_angle = np.sqrt(roll**2 + pitch**2)
+        episode_time = self.episode_steps * env.dt
+        success_rate = (self.success_count / self.episode_count * 100) if self.episode_count > 0 else 0
+        avg_length = np.mean(self.episode_lengths) if self.episode_lengths else 0
+
+        status = "STOPPED"
+        if started:
+            if tilt_angle < 5 and height_error < 0.05:
+                status = "EXCELLENT"
+            elif tilt_angle < 10 and height_error < 0.1:
+                status = "GOOD"
+            elif tilt_angle < 20:
+                status = "UNSTABLE"
+            else:
+                status = "FALLING"
+
+        print("=" * 60)
+        print(f"  Balance Monitor - {status}")
+        print("=" * 60)
+        print("\nCurrent State:")
+        print(f"  Height:      {height:.3f} m  (target: {target_height:.3f} m, error: {height_error:.3f} m)")
+        print(f"  Roll:        {roll:+6.2f} deg")
+        print(f"  Pitch:       {pitch:+6.2f} deg")
+        print(f"  Tilt Angle:  {tilt_angle:6.2f} deg  {'OK' if tilt_angle < 10 else 'BAD'}")
+        print("\nVelocities:")
+        print(f"  Linear:  [{lin_vel[0]:+6.3f}, {lin_vel[1]:+6.3f}, {lin_vel[2]:+6.3f}] m/s")
+        print(f"  Angular: [{ang_vel[0]:+6.3f}, {ang_vel[1]:+6.3f}, {ang_vel[2]:+6.3f}] rad/s")
+        print("\nEpisode Stats:")
+        print(f"  Time:        {episode_time:.1f} s  (steps: {self.episode_steps})")
+        print(f"  Max Length:  {self.max_episode_length * env.dt:.1f} s  ({self.max_episode_length} steps)")
+        print("\nOverall Stats:")
+        print(f"  Episodes:    {self.episode_count}")
+        print(f"  Success:     {self.success_count} ({success_rate:.1f}%)")
+        print(f"  Avg Length:  {avg_length * env.dt:.1f} s  ({avg_length:.0f} steps)")
+        print(f"  Total Steps: {self.total_steps}")
+        print("\nControls:")
+        print("  [C] Start  [R] Reset  [S] Toggle Stats  [P] Pause  [ESC] Exit")
+        print("=" * 60)
 
 
 def play(args):
     args.task = args.task or "wheel_legged_vmc_balance"
     env_cfg, train_cfg = task_registry.get_cfgs(name=args.task)
 
-    # play defaults
+    # Play configuration
     env_cfg.env.num_envs = 1
     env_cfg.env.episode_length_s = 30
     env_cfg.env.fail_to_terminal_time_s = 10.0
     env_cfg.noise.add_noise = False
     env_cfg.domain_rand.push_robots = False
 
+    # Create environment
     env, _ = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
     obs, obs_history = env.get_observations()
 
-    # load policy
+    # Load policy
+    print("\nLoading trained policy...")
     train_cfg.runner.resume = True
-    ppo_runner, train_cfg = task_registry.make_alg_runner(
-        env=env, name=args.task, args=args, train_cfg=train_cfg
-    )
-    policy = ppo_runner.get_inference_policy(device=env.device)
+    try:
+        ppo_runner, train_cfg = task_registry.make_alg_runner(
+            env=env, name=args.task, args=args, train_cfg=train_cfg
+        )
+        policy = ppo_runner.get_inference_policy(device=env.device)
+        print("Policy loaded successfully!")
+    except Exception as e:
+        print(f"Failed to load policy: {e}")
+        print("Make sure you have trained the model first:")
+        print("  python wheel_legged_gym/scripts/train.py --task=wheel_legged_vmc_balance")
+        return
 
-    # keyboard subscriptions
+    # Initialize monitor
+    monitor = BalanceMonitor()
+
+    # Keyboard subscriptions
     env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_C, "START")
     env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_R, "RESET")
+    env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_S, "TOGGLE_STATS")
+    env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_P, "PAUSE")
+    env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_ESCAPE, "EXIT")
 
+    # State variables
     started = False
-    step_count = 0
-    while True:
-        # handle keyboard
-        for evt in env.gym.query_viewer_action_events(env.viewer):
-            if evt.action == "START" and evt.value > 0:
-                started = True
-                env.ready_for_control[:] = True
-                print("[PLAY] Start command received -> control enabled")
-            if evt.action == "RESET" and evt.value > 0:
-                env.reset_idx(torch.arange(env.num_envs, device=env.device))
-                started = False
-                env.ready_for_control[:] = False
-                print("[PLAY] Reset -> control disabled")
+    paused = False
 
-        # choose actions
-        if started:
-            if ppo_runner.alg.actor_critic.is_sequence:
-                actions, _ = policy(obs, obs_history)
+    print("\n" + "=" * 60)
+    print("  Balance Test Started!")
+    print("=" * 60)
+    print("\nPress 'C' to start control")
+    print("Press 'R' to reset")
+    print("Press 'S' to toggle statistics")
+    print("Press 'P' to pause/resume")
+    print("Press 'ESC' to exit\n")
+
+    try:
+        while True:
+            # Handle keyboard events
+            for evt in env.gym.query_viewer_action_events(env.viewer):
+                if evt.action == "START" and evt.value > 0:
+                    started = True
+                    print("\nControl ENABLED - Policy is now active!")
+
+                elif evt.action == "RESET" and evt.value > 0:
+                    success = monitor.episode_steps > env.max_episode_length * 0.8
+                    monitor.on_reset(success=success)
+                    env.reset_idx(torch.arange(env.num_envs, device=env.device))
+                    started = False
+                    print("\nRESET - Control disabled")
+
+                elif evt.action == "TOGGLE_STATS" and evt.value > 0:
+                    monitor.show_stats = not monitor.show_stats
+                    print(f"\nStatistics display: {'ON' if monitor.show_stats else 'OFF'}")
+
+                elif evt.action == "PAUSE" and evt.value > 0:
+                    paused = not paused
+                    print(f"\n{'PAUSED' if paused else 'RESUMED'}")
+
+                elif evt.action == "EXIT" and evt.value > 0:
+                    print("\nExiting...")
+                    return
+
+            if paused:
+                time.sleep(0.1)
+                continue
+
+            # Choose actions
+            if started:
+                if ppo_runner.alg.actor_critic.is_sequence:
+                    actions, _ = policy(obs, obs_history)
+                else:
+                    actions = policy(obs.detach())
             else:
-                actions = policy(obs.detach())
-        else:
-            actions = torch.zeros((env.num_envs, env.num_actions), device=env.device)
-            env.ready_for_control[:] = False
+                actions = torch.zeros((env.num_envs, env.num_actions), device=env.device)
 
-        step_out = env.step(actions)
-        obs = step_out[0]
-        if len(step_out) > 5:
-            obs_history = step_out[5]
-        step_count += 1
+            # Execute step
+            step_out = env.step(actions)
+            obs = step_out[0]
+            if len(step_out) > 5:
+                obs_history = step_out[5]
 
-        if env.viewer is None:  # headless safety
-            if step_count % 100 == 0:
-                print(f"[PLAY] step {step_count}, started={started}")
+            # Update monitor
+            if started:
+                monitor.update(env)
+                monitor.print_stats(env, started)
+
+            # Check for auto-reset
+            if env.reset_buf[0]:
+                success = monitor.episode_steps > env.max_episode_length * 0.8
+                monitor.on_reset(success=success)
+                if success:
+                    print("\nSUCCESS! Episode completed!")
+                else:
+                    print("\nEpisode terminated (robot fell or timeout)")
+
+            # Headless safety
+            if env.viewer is None:
+                if monitor.total_steps % 100 == 0:
+                    print(f"[HEADLESS] step {monitor.total_steps}, started={started}")
+
+    except KeyboardInterrupt:
+        print("\n\nInterrupted by user. Exiting...")
+    except Exception as e:
+        print(f"\n\nError occurred: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        # Print final statistics
+        print("\n" + "=" * 60)
+        print("  Final Statistics")
+        print("=" * 60)
+        print(f"  Total Episodes:  {monitor.episode_count}")
+        print(f"  Success Rate:    {monitor.success_count}/{monitor.episode_count} ({monitor.success_count/monitor.episode_count*100 if monitor.episode_count > 0 else 0:.1f}%)")
+        print(f"  Max Length:      {monitor.max_episode_length * env.dt:.1f} s")
+        if monitor.episode_lengths:
+            print(f"  Avg Length:      {np.mean(monitor.episode_lengths) * env.dt:.1f} s")
+        print(f"  Total Steps:     {monitor.total_steps}")
+        print("=" * 60)
+        print("\nGoodbye!\n")
 
 
 if __name__ == "__main__":

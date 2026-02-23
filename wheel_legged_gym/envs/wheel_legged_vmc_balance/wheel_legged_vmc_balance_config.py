@@ -1,32 +1,5 @@
 # SPDX-FileCopyrightText: Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# 1. Redistributions of source code must retain the above copyright notice, this
-# list of conditions and the following disclaimer.
-#
-# 2. Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-#
-# 3. Neither the name of the copyright holder nor the names of its
-# contributors may be used to endorse or promote products derived from
-# this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-# Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
 from wheel_legged_gym.envs.wheel_legged_vmc.wheel_legged_vmc_config import (
     WheelLeggedVMCCfg,
@@ -35,51 +8,50 @@ from wheel_legged_gym.envs.wheel_legged_vmc.wheel_legged_vmc_config import (
 
 
 class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
-    class init_state(WheelLeggedVMCCfg.init_state):
-        # 小腿完全伸展，提供更大的支撑面
-        default_joint_angles = WheelLeggedVMCCfg.init_state.default_joint_angles.copy()
-        default_joint_angles.update(
-            {
-                "lf1_Joint": -0.6,
-                "rf1_Joint": -0.6,
-            }
-        )
+    """
+    Balance task configuration: recover from any pose to Flat initial condition
+    Two-stage control: Balance → Flat
+    """
 
     class env(WheelLeggedVMCCfg.env):
-        episode_length_s = 20  # 缩短 episode，加快训练
-        fail_to_terminal_time_s = 5.0  # 更快终止失败的 episode
+        num_envs = 4096
+        episode_length_s = 60  # 1 分钟超时重启
+        fail_to_terminal_time_s = 60.0  # 与 episode_length_s 一致
 
     class terrain(WheelLeggedVMCCfg.terrain):
         mesh_type = "plane"
 
     class commands(WheelLeggedVMCCfg.commands):
+        # Balance 任务不需要速度命令
         curriculum = False
-        heading_command = False
-        resampling_time = 1000.0
+        max_curriculum = 0.0
+        num_commands = 3
+        resampling_time = 10.0
 
-        class ranges(WheelLeggedVMCCfg.commands.ranges):
+        class ranges:
             lin_vel_x = [0.0, 0.0]
+            lin_vel_y = [0.0, 0.0]
             ang_vel_yaw = [0.0, 0.0]
-            height = [0.25, 0.25]
             heading = [0.0, 0.0]
+            height = [0.20, 0.20]  # 目标高度固定为 0.20m
 
     class control(WheelLeggedVMCCfg.control):
-        # 优化的 PD 参数 - 针对平衡任务
-        action_scale_theta = 0.3  # 降低角度动作幅度，更平滑
-        action_scale_l0 = 0.05    # 降低腿长动作幅度
-        action_scale_vel = 8.0    # 降低轮速动作幅度
+        # 允许大幅度恢复动作
+        action_scale_theta = 1.0   # 57.3° - 足够恢复大角度
+        action_scale_l0 = 0.1      # 10cm
+        action_scale_vel = 10.0    # 轮速
 
-        l0_offset = 0.22
-        feedforward_force = 40.0  # 降低前馈力，减少过度补偿
+        l0_offset = 0.23
+        feedforward_force = 40.0
 
-        # 降低 PD 增益，提高稳定性
-        kp_theta = 8.0   # 从 10.0 降低
-        kd_theta = 4.0   # 从 5.0 降低
-        kp_l0 = 600.0    # 从 800.0 降低
-        kd_l0 = 6.0      # 从 7.0 降低
+        # PD 增益
+        kp_theta = 8.0
+        kd_theta = 4.0
+        kp_l0 = 600.0
+        kd_l0 = 6.0
 
         stiffness = {"f0": 0.0, "f1": 0.0, "wheel": 0}
-        damping = {"f0": 0.0, "f1": 0.0, "wheel": 0.15}  # 增加轮子阻尼
+        damping = {"f0": 0.0, "f1": 0.0, "wheel": 0.15}
 
     class rewards(WheelLeggedVMCCfg.rewards):
         clip_single_reward = 10.0
@@ -98,19 +70,37 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
             dof_vel = 0.0
             dof_acc = 0.0
 
-            # 核心奖励 - 优化权重
-            base_height = 40.0       # 增加高度奖励（最重要）
-            orientation = -40.0      # 增加姿态惩罚（最重要）
-            upright_bonus = 20.0     # 增加直立奖励
+            # 核心目标：达到 Flat 初始条件
+            base_height = 50.0       # 高度控制到目标
 
-            # 保持静止 - 增强
-            lin_vel_z = -2.0         # 增加 z 方向速度惩罚
-            ang_vel_xy = -1.0        # 增加 roll/pitch 角速度惩罚
-            stand_still = 3.0        # 增加静止奖励
+            # 禁用原始的 orientation 和 ang_vel_xy
+            orientation = 0.0
+            ang_vel_xy = 0.0
+
+            # 基于角度的姿态惩罚（强烈惩罚偏离 0°）
+            pitch_angle = -100.0     # 目标：0°
+            roll_angle = -100.0      # 目标：0°
+
+            # 基于角速度的晃动惩罚
+            pitch_vel = -10.0        # 目标：0 rad/s
+            roll_vel = -10.0         # 目标：0 rad/s
+
+            # 腿部控制
+            leg_angle_zero = -5.0    # 鼓励腿垂直
+
+            # 达到 Flat 目标的大奖励（关键！）
+            reach_flat_target = 100.0  # 所有条件满足时
+
+            # 直立奖励
+            upright_bonus = 20.0
+
+            # 保持静止
+            lin_vel_z = -10.0        # 惩罚 z 方向速度
+            stand_still = 10.0       # 奖励静止
 
             # 基本约束
-            torques = -5e-5          # 增加力矩惩罚
-            termination = -10.0      # 增加终止惩罚
+            torques = -1e-4
+            termination = -10.0
 
             # 禁用所有其他奖励
             orientation_flip = 0.0
@@ -118,50 +108,59 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
             torque_over_limit = 0.0
             recovery_speed = 0.0
             energy_efficiency = 0.0
-            ang_vel_yaw = 0.0
-            base_lin_vel_xy = 0.0
+            ang_vel_yaw = -5.0       # 惩罚 yaw 旋转
+            base_lin_vel_xy = -10.0  # 惩罚 xy 方向速度
             hip_pos_constraint = 0.0
 
     class domain_rand(WheelLeggedVMCCfg.domain_rand):
-        push_robots = False  # 禁用推力扰动
+        push_robots = False
         randomize_default_dof_pos = False
 
     class asset(WheelLeggedVMCCfg.asset):
-        # terminate episode if thighs/calf links contact the ground (simulate forbidden knee-ground contact)
-        terminate_after_contacts_on = ["base", "lf0", "lf1", "rf0", "rf1"]
+        terminate_after_contacts_on = []  # 不因接触而终止
+
+    class init_state(WheelLeggedVMCCfg.init_state):
+        # 目标状态（Flat 初始条件）
+        pos = [0.0, 0.0, 0.20]  # 目标高度 0.20m（匹配实际机器人）
+        rot = [0.0, 0.0, 0.0, 1.0]  # 完全直立
+        lin_vel = [0.0, 0.0, 0.0]
+        ang_vel = [0.0, 0.0, 0.0]
+
+        # 大范围随机初始化（从各种姿态开始）
+        pos_offset = [0.0, 0.0, 0.0]
+        rot_offset = [0.0, 0.0, 0.0]  # 将通过 balance_reset 设置
 
     class balance_reset:
-        # 最小化初始化：只从直立姿态开始，添加微小扰动
+        """大范围初始化：从任意姿态开始训练"""
+        # 位置扰动
         x_pos_offset = [0.0, 0.0]
         y_pos_offset = [0.0, 0.0]
-        z_pos_offset = [0.0, 0.0]
-        roll = [0.0, 0.0]   # 完全直立
-        pitch = [0.0, 0.0]  # 完全直立
-        yaw = [0.0, 0.0]    # 固定朝向
-        lin_vel_x = [0.0, 0.0]
-        lin_vel_y = [0.0, 0.0]
-        lin_vel_z = [0.0, 0.0]
-        ang_vel_roll = [0.0, 0.0]
-        ang_vel_pitch = [0.0, 0.0]
-        ang_vel_yaw = [0.0, 0.0]
+        z_pos_offset = [-0.1, 0.1]    # ±10cm
 
-    class balance_control:
-        stable_steps = 5          # consecutive steps satisfying thresholds before enabling all motors
-        max_wait_steps = 600      # safety cap; fallback enable even if not perfectly stable
-        lin_vel_thresh = 0.08
-        ang_vel_thresh = 0.15
-        grav_xy_thresh = 0.06
+        # 姿态扰动（大范围！）
+        roll = [-0.8, 0.8]            # ±45.8°
+        pitch = [-0.8, 0.8]           # ±45.8°
+        yaw = [-0.5, 0.5]             # ±28.6°
+
+        # 速度扰动
+        lin_vel_x = [0, 0]       # ±0.5 m/s
+        lin_vel_y = [0, 0]
+        lin_vel_z = [0, 0]
+
+        # 角速度扰动
+        ang_vel_roll = [0, 0]    # ±1.0 rad/s
+        ang_vel_pitch = [0, 0]
+        ang_vel_yaw = [0, 0]
 
 
 class WheelLeggedVMCBalanceCfgPPO(WheelLeggedVMCCfgPPO):
     class algorithm(WheelLeggedVMCCfgPPO.algorithm):
-        # 优化的训练参数
-        learning_rate = 1e-4      # 提高学习率，加快收敛
-        num_learning_epochs = 5   # 增加学习轮数
-        num_mini_batches = 8      # 增加 mini batch 数量
-        entropy_coef = 0.01       # 增加探索
+        learning_rate = 1e-4
+        num_learning_epochs = 5
+        num_mini_batches = 8
+        entropy_coef = 0.01
 
     class runner(WheelLeggedVMCCfgPPO.runner):
         experiment_name = "wheel_legged_vmc_balance"
-        max_iterations = 2000     # 足够的迭代次数
-        save_interval = 50        # 更频繁保存
+        max_iterations = 2000     # 需要更多 iterations 学习恢复
+        save_interval = 50
