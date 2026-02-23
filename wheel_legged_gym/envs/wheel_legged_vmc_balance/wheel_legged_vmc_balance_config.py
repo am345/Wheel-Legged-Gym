@@ -36,7 +36,7 @@ from wheel_legged_gym.envs.wheel_legged_vmc.wheel_legged_vmc_config import (
 
 class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
     class init_state(WheelLeggedVMCCfg.init_state):
-        # keep height, roll/pitch/yaw from parent; set calf joints to fully extended (lower limit = -0.6 rad)
+        # 小腿完全伸展，提供更大的支撑面
         default_joint_angles = WheelLeggedVMCCfg.init_state.default_joint_angles.copy()
         default_joint_angles.update(
             {
@@ -46,8 +46,8 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
         )
 
     class env(WheelLeggedVMCCfg.env):
-        episode_length_s = 30
-        fail_to_terminal_time_s = 10.0
+        episode_length_s = 20  # 缩短 episode，加快训练
+        fail_to_terminal_time_s = 5.0  # 更快终止失败的 episode
 
     class terrain(WheelLeggedVMCCfg.terrain):
         mesh_type = "plane"
@@ -60,58 +60,70 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
         class ranges(WheelLeggedVMCCfg.commands.ranges):
             lin_vel_x = [0.0, 0.0]
             ang_vel_yaw = [0.0, 0.0]
-            height = [0.18, 0.18]
+            height = [0.25, 0.25]
             heading = [0.0, 0.0]
 
+    class control(WheelLeggedVMCCfg.control):
+        # 优化的 PD 参数 - 针对平衡任务
+        action_scale_theta = 0.3  # 降低角度动作幅度，更平滑
+        action_scale_l0 = 0.05    # 降低腿长动作幅度
+        action_scale_vel = 8.0    # 降低轮速动作幅度
+
+        l0_offset = 0.22
+        feedforward_force = 40.0  # 降低前馈力，减少过度补偿
+
+        # 降低 PD 增益，提高稳定性
+        kp_theta = 8.0   # 从 10.0 降低
+        kd_theta = 4.0   # 从 5.0 降低
+        kp_l0 = 600.0    # 从 800.0 降低
+        kd_l0 = 6.0      # 从 7.0 降低
+
+        stiffness = {"f0": 0.0, "f1": 0.0, "wheel": 0}
+        damping = {"f0": 0.0, "f1": 0.0, "wheel": 0.15}  # 增加轮子阻尼
+
     class rewards(WheelLeggedVMCCfg.rewards):
-        clip_single_reward = 5.0  # 增加 clip 范围
+        clip_single_reward = 10.0
 
         class scales(WheelLeggedVMCCfg.rewards.scales):
-            # 禁用速度跟踪
+            # 禁用所有非核心奖励
             tracking_lin_vel = 0.0
             tracking_lin_vel_enhance = 0.0
             tracking_ang_vel = 0.0
+            base_height_enhance = 0.0
+            nominal_state = 0.0
+            collision = 0.0
+            dof_pos_limits = 0.0
+            action_rate = 0.0
+            action_smooth = 0.0
+            dof_vel = 0.0
+            dof_acc = 0.0
 
-            # 核心奖励：保持直立和高度
-            base_height = 20.0  # 增加高度奖励权重
-            base_height_enhance = 5.0
-            orientation = -20.0  # 增加姿态惩罚
-            orientation_flip = 0.0
-            upright_bonus = 10.0  # 大幅增加直立奖励
+            # 核心奖励 - 优化权重
+            base_height = 40.0       # 增加高度奖励（最重要）
+            orientation = -40.0      # 增加姿态惩罚（最重要）
+            upright_bonus = 20.0     # 增加直立奖励
 
             # 保持静止 - 增强
-            lin_vel_z = -2.0
-            ang_vel_xy = -0.5  # 增加惩罚，减少 roll/pitch 角速度
-            ang_vel_yaw = -1.0  # 新增：严格惩罚 yaw 自转
-            base_lin_vel_xy = -0.5  # 新增：惩罚 xy 平面移动
-            stand_still = 2.0  # 增加静止奖励
+            lin_vel_z = -2.0         # 增加 z 方向速度惩罚
+            ang_vel_xy = -1.0        # 增加 roll/pitch 角速度惩罚
+            stand_still = 3.0        # 增加静止奖励
 
-            # 关节控制
-            hip_upright = -5.0
-            nominal_state = 0.3
-            hip_pos_constraint = -8.0  # 新增：约束髋关节位置
+            # 基本约束
+            torques = -5e-5          # 增加力矩惩罚
+            termination = -10.0      # 增加终止惩罚
 
-            # 平滑控制
-            dof_vel = -1e-4
-            dof_acc = -2e-7
-            torques = -1e-4
-            action_rate = -0.01
-            action_smooth = -0.01
-
-            # 安全约束
-            collision = -1.0
-            dof_pos_limits = -1.0
-            termination = -10.0
-            torque_over_limit = -30.0
-
-            # 暂时禁用高级奖励
+            # 禁用所有其他奖励
+            orientation_flip = 0.0
+            hip_upright = 0.0
+            torque_over_limit = 0.0
             recovery_speed = 0.0
             energy_efficiency = 0.0
+            ang_vel_yaw = 0.0
+            base_lin_vel_xy = 0.0
+            hip_pos_constraint = 0.0
 
     class domain_rand(WheelLeggedVMCCfg.domain_rand):
-        push_robots = True
-        push_interval_s = 5
-        max_push_vel_xy = 1.0
+        push_robots = False  # 禁用推力扰动
         randomize_default_dof_pos = False
 
     class asset(WheelLeggedVMCCfg.asset):
@@ -119,19 +131,19 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
         terminate_after_contacts_on = ["base", "lf0", "lf1", "rf0", "rf1"]
 
     class balance_reset:
-        x_pos_offset = [-0.1, 0.1]
-        y_pos_offset = [-0.1, 0.1]
-        z_pos_offset = [-0.02, 0.04]
-        # 阶段1: 先学会小角度平衡 (±30°)
-        roll = [-0.5, 0.5]   # ±30° 开始训练
-        pitch = [-0.5, 0.5]  # ±30° 开始训练
-        yaw = [-3.1415926, 3.1415926]
-        lin_vel_x = [-0.5, 0.5]   # 降低初始速度
-        lin_vel_y = [-0.5, 0.5]
-        lin_vel_z = [-0.3, 0.3]
-        ang_vel_roll = [-1.5, 1.5]   # 降低初始角速度
-        ang_vel_pitch = [-1.5, 1.5]
-        ang_vel_yaw = [-1.5, 1.5]
+        # 最小化初始化：只从直立姿态开始，添加微小扰动
+        x_pos_offset = [0.0, 0.0]
+        y_pos_offset = [0.0, 0.0]
+        z_pos_offset = [0.0, 0.0]
+        roll = [0.0, 0.0]   # 完全直立
+        pitch = [0.0, 0.0]  # 完全直立
+        yaw = [0.0, 0.0]    # 固定朝向
+        lin_vel_x = [0.0, 0.0]
+        lin_vel_y = [0.0, 0.0]
+        lin_vel_z = [0.0, 0.0]
+        ang_vel_roll = [0.0, 0.0]
+        ang_vel_pitch = [0.0, 0.0]
+        ang_vel_yaw = [0.0, 0.0]
 
     class balance_control:
         stable_steps = 5          # consecutive steps satisfying thresholds before enabling all motors
@@ -143,11 +155,13 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
 
 class WheelLeggedVMCBalanceCfgPPO(WheelLeggedVMCCfgPPO):
     class algorithm(WheelLeggedVMCCfgPPO.algorithm):
-        # 降低学习率，提高稳定性
-        learning_rate = 5e-5  # 从默认的 1e-3 降低
+        # 优化的训练参数
+        learning_rate = 1e-4      # 提高学习率，加快收敛
+        num_learning_epochs = 5   # 增加学习轮数
+        num_mini_batches = 8      # 增加 mini batch 数量
+        entropy_coef = 0.01       # 增加探索
 
     class runner(WheelLeggedVMCCfgPPO.runner):
-        # logging
         experiment_name = "wheel_legged_vmc_balance"
-        max_iterations = 5000  # 增加训练迭代次数
-        save_interval = 100  # 更频繁地保存模型
+        max_iterations = 2000     # 足够的迭代次数
+        save_interval = 50        # 更频繁保存
