@@ -129,6 +129,36 @@ def _reward_orientation(self):
 ## 常用命令
 
 **注意**: 所有命令执行前必须先激活环境：`conda activate gym_env`
+**重要** 每次更改完代码后先自己运行一遍任务看有没有语法错误 
+若输出以下类似调试信息说明代码成功跑起来了
+
+################################################################################
+                      Learning iteration 305/2000                       
+
+                       Computation: 7798 steps/s (collection: 0.644s, learning 0.144s)
+               Value function loss: 42820206.6750
+                    Surrogate loss: 0.0003
+             Mean action noise std: 0.66
+                       Mean reward: 2565.63
+                       Mean length: 6002.00
+              Mean rew_ang_vel_yaw: -0.0020
+          Mean rew_base_lin_vel_xy: -0.0114
+           Mean rew_leg_angle_zero: 5.6504
+                Mean rew_lin_vel_z: -0.0012
+              Mean rew_pitch_angle: 10.0033
+                Mean rew_pitch_vel: -0.1078
+        Mean rew_reach_flat_target: 0.0033
+               Mean rew_roll_angle: 10.0033
+                 Mean rew_roll_vel: -0.0233
+              Mean rew_stand_still: 8.5224
+              Mean rew_termination: 0.0000
+                  Mean rew_torques: -0.0016
+            Mean rew_upright_bonus: 9.0815
+--------------------------------------------------------------------------------
+                   Total timesteps: 1880064
+                    Iteration time: 0.79s
+                        Total time: 272.65s
+                               ETA: 1510.3s
 
 ### 训练
 ```bash
@@ -167,96 +197,6 @@ tensorboard --logdir=./logs --port=8080
 
 # 查看训练日志
 tail -f logs/wheel_legged_vmc_balance/latest/train.log
-```
-
-## 关键参数调优指南
-
-### 平衡恢复任务 (wheel_legged_vmc_balance)
-
-**奖励权重** (`cfg.rewards.scales`):
-```python
-base_height = 15.0          # 高度跟踪 (主要目标)
-orientation = -15.0         # 姿态惩罚 (保持直立)
-orientation_flip = -20.0    # 翻转惩罚 (严重)
-hip_upright = -10.0         # 髋关节归零
-upright_bonus = 5.0         # 稳定奖励
-torque_over_limit = -50.0   # 力矩限制 (>30Nm)
-```
-
-**控制参数** (`cfg.control`):
-```python
-kp_theta = 10.0             # 极角 P 增益
-kd_theta = 5.0              # 极角 D 增益
-kp_l0 = 800.0               # 腿长 P 增益
-kd_l0 = 7.0                 # 腿长 D 增益
-feedforward_force = 60.0    # 前馈力 (抵消重力)
-```
-
-**初始化范围** (`cfg.balance_reset`):
-```python
-roll = [-0.8, 0.8]          # 初始横滚角
-pitch = [-0.8, 0.8]         # 初始俯仰角
-yaw = [-π, π]               # 初始偏航角 (全范围)
-lin_vel_x = [-1.0, 1.0]     # 初始线速度
-ang_vel_roll = [-3.0, 3.0]  # 初始角速度
-```
-
-## 调试技巧
-
-### 1. 可视化调试
-训练时按键盘快捷键:
-- `v`: 切换渲染 (提升性能)
-- `c`: 切换相机跟随
-- `r`: 重置所有环境
-
-### 2. 打印调试信息
-在环境类中添加:
-```python
-def _post_physics_step_callback(self):
-    super()._post_physics_step_callback()
-    if self.common_step_counter % 100 == 0:
-        print(f"L0: {self.L0[0]}, theta0: {self.theta0[0]}")
-```
-
-### 3. 检查奖励分布
-```python
-# 在 compute_reward() 后添加
-if self.common_step_counter % 1000 == 0:
-    for key, value in self.episode_sums.items():
-        print(f"{key}: {value.mean():.3f}")
-```
-
-### 4. 验证 VMC 雅可比
-```python
-# 测试正逆运动学一致性
-theta1_test = torch.tensor([[0.5, 0.5]])
-theta2_test = torch.tensor([[-0.3, -0.3]])
-L0, theta0 = self.forward_kinematics(theta1_test, theta2_test)
-print(f"L0: {L0}, theta0: {theta0}")
-```
-
-## 常见问题
-
-### 1. 训练不稳定
-- 降低学习率 (`cfg_train.algorithm.learning_rate`)
-- 增加 batch size (`cfg_train.algorithm.num_mini_batches`)
-- 检查奖励权重是否过大
-
-### 2. 机器人倒地
-- 增加 `orientation` 惩罚权重
-- 调整初始化范围 (降低难度)
-- 检查力矩限制是否合理
-
-### 3. 显存不足
-- 减少环境数量 (`--num_envs=2048`)
-- 使用 `wheel_legged_vmc_flat` (平地地形)
-- 关闭高度测量 (`cfg.terrain.measure_heights = False`)
-
-### 4. 训练速度慢
-- 使用无头模式 (`--headless`)
-- 训练时按 `v` 关闭渲染
-- 增加 decimation (`cfg.control.decimation`)
-
 ## 模型部署
 
 训练完成后，模型保存在:

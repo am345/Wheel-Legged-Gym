@@ -106,9 +106,8 @@ class LeggedRobotVMCBalance(LeggedRobotVMC):
             with open(self.debug_log_path, 'a', encoding='utf-8') as f:
                 f.write(f"Step {self.common_step_counter}: Ready={ready_ratio:.2%}, LinVel={avg_lin_vel:.3f}, AngVel={avg_ang_vel:.3f}, Settling={avg_settling:.2f}s, Pitch={avg_pitch:.1f}deg, Roll={avg_roll:.1f}deg\n")
 
-    def compute_observations(self):
-        """计算观测，增加线速度/高度/ready标志"""
-        # 基于 VMC 的观测
+    def compute_proprioception_observations(self):
+        """自定义本体观测：添加线速度和高度，不暴露 ready 标志"""
         obs_buf = torch.cat(
             (
                 self.base_ang_vel * self.obs_scales.ang_vel,
@@ -122,12 +121,15 @@ class LeggedRobotVMCBalance(LeggedRobotVMC):
                 self.dof_vel[:, [2, 5]] * self.obs_scales.dof_vel,
                 self.base_lin_vel * self.obs_scales.lin_vel,
                 self.base_height.unsqueeze(1) * self.obs_scales.height_measurements,
-                self.ready_for_control.unsqueeze(1).float(),
                 self.actions,
             ),
             dim=-1,
         )
-        self.obs_buf = obs_buf
+        return obs_buf
+
+    def compute_observations(self):
+        """计算观测，保持与 reset 时一致的维度"""
+        self.obs_buf = self.compute_proprioception_observations()
 
         # privileged obs 维度在配置里已更新
         if self.num_privileged_obs is not None:

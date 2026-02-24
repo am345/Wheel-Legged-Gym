@@ -17,10 +17,10 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
         num_envs = 4096
         episode_length_s = 60  # 1 分钟超时重启
         fail_to_terminal_time_s = 60.0  # 与 episode_length_s 一致
-        # 观测: 基类27项 + base_lin_vel(3) + base_height(1) + ready_flag(1)
-        num_observations = 32
-        # 32 + measured_heights(77) + last_actions(6*7) + dof_acc(6) + default_dof_pos diff(3) + base_mass/com(3)
-        num_privileged_obs = 160
+        # 观测: 基类27项 + base_lin_vel(3) + base_height(1)
+        num_observations = 31
+        # 31 + measured_heights(77) + last_actions(12) + dof_acc(6) + dof_pos(6) + dof_vel(6) + torques(6) + base_mass/com(4) + default_dof_pos diff(6)
+        num_privileged_obs = 157
 
     class terrain(WheelLeggedVMCCfg.terrain):
         mesh_type = "plane"
@@ -82,25 +82,25 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
             ang_vel_xy = 0.0
 
             # 基于角度的姿态奖励（使用指数衰减，值域 0-1）
-            pitch_angle = 50.0       # exp(-|angle|)，角度越小奖励越高
-            roll_angle = 50.0        # exp(-|angle|)，角度越小奖励越高
+            pitch_angle = 1.0       # exp(-|angle|)，角度越小奖励越高
+            roll_angle = 1.0        # exp(-|angle|)，角度越小奖励越高
 
             # 基于角速度的晃动惩罚
-            pitch_vel = -1.0         # 目标：0 rad/s
-            roll_vel = -1.0          # 目标：0 rad/s
+            pitch_vel = -0.1         # 目标：0 rad/s
+            roll_vel = -0.1         # 目标：0 rad/s
 
             # 腿部控制（世界坐标系垂直，使用指数衰减）
-            leg_angle_zero = 10.0    # exp(-|angle|)，腿越垂直奖励越高
+            leg_angle_zero = 1.0    # exp(-|angle|)，腿越垂直奖励越高
 
             # 达到 Flat 目标的大奖励（关键！）
-            reach_flat_target = 150.0  # 所有条件满足时
+            reach_flat_target = 0.0  # 所有条件满足时
 
             # 直立奖励
-            upright_bonus = 10.0
+            upright_bonus = 0.0
 
             # 保持静止
-            lin_vel_z = -1.0
-            stand_still = 5.0
+            lin_vel_z = 0.0
+            stand_still = 0.0
 
             # 基本约束
             torques = -1e-4
@@ -112,8 +112,8 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
             torque_over_limit = 0.0
             recovery_speed = 0.0
             energy_efficiency = 0.0
-            ang_vel_yaw = -5.0       # 惩罚 yaw 旋转
-            base_lin_vel_xy = -10.0  # 惩罚 xy 方向速度
+            ang_vel_yaw = 0.0       # 惩罚 yaw 旋转
+            base_lin_vel_xy = 0.0  # 惩罚 xy 方向速度
             hip_pos_constraint = 0.0
 
     class domain_rand(WheelLeggedVMCCfg.domain_rand):
@@ -158,6 +158,12 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
 
 
 class WheelLeggedVMCBalanceCfgPPO(WheelLeggedVMCCfgPPO):
+    class policy(WheelLeggedVMCCfgPPO.policy):
+        # 确保编码器输入维度与更新后的观测长度一致
+        num_encoder_obs = (
+            WheelLeggedVMCBalanceCfg.env.num_observations
+            * WheelLeggedVMCBalanceCfg.env.obs_history_length
+        )
     class algorithm(WheelLeggedVMCCfgPPO.algorithm):
         learning_rate = 1e-4
         num_learning_epochs = 5
