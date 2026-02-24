@@ -58,10 +58,10 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
         damping = {"f0": 0.0, "f1": 0.0, "wheel": 0.15}
 
     class rewards(WheelLeggedVMCCfg.rewards):
-        clip_single_reward = 100.0  # 放宽裁剪，让 reach_flat_target 有效信号
+        clip_single_reward = 10.0
 
         class scales(WheelLeggedVMCCfg.rewards.scales):
-            # 禁用所有非核心奖励
+            # 关闭所有基类奖励
             tracking_lin_vel = 0.0
             tracking_lin_vel_enhance = 0.0
             tracking_ang_vel = 0.0
@@ -69,52 +69,52 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
             nominal_state = 0.0
             collision = 0.0
             dof_pos_limits = 0.0
-            action_rate = 0.0
             action_smooth = 0.0
             dof_vel = 0.0
             dof_acc = 0.0
-
-            # 核心目标：达到 Flat 初始条件
-            base_height = 20.0      # 高度形状奖励
-
-            # 禁用原始的 orientation 和 ang_vel_xy
             orientation = 0.0
-            ang_vel_xy = 0.0
-
-            # 基于角度的姿态奖励（使用指数衰减，值域 0-1）
-            pitch_angle = 1.0       # exp(-|angle|)，角度越小奖励越高
-            roll_angle = 1.0        # exp(-|angle|)，角度越小奖励越高
-
-            # 基于角速度的晃动惩罚
-            pitch_vel = -0.1         # 目标：0 rad/s
-            roll_vel = -0.1         # 目标：0 rad/s
-
-            # 腿部控制（世界坐标系垂直，使用指数衰减）
-            leg_angle_zero = 1.0    # exp(-|angle|)，腿越垂直奖励越高
-
-            # 达到 Flat 目标的大奖励（关键！）
-            reach_flat_target = 0.0  # 所有条件满足时
-
-            # 直立奖励
-            upright_bonus = 0.0
-
-            # 保持静止
-            lin_vel_z = 0.0
-            stand_still = 0.0
-
-            # 基本约束
-            torques = -1e-4
-            termination = -10.0
-
-            # 禁用所有其他奖励
+            base_height = 0.0
+            hip_pos_constraint = 0.0
             orientation_flip = 0.0
             hip_upright = 0.0
             torque_over_limit = 0.0
             recovery_speed = 0.0
             energy_efficiency = 0.0
-            ang_vel_yaw = 0.0       # 惩罚 yaw 旋转
-            base_lin_vel_xy = 0.0  # 惩罚 xy 方向速度
-            hip_pos_constraint = 0.0
+            ang_vel_yaw = 0.0
+            base_lin_vel_xy = 0.0
+            stand_still = 0.0
+            upright_bonus = 0.0
+            leg_angle_zero = 0.0
+            pitch_angle = 0.0
+            roll_angle = 0.0
+            pitch_vel = 0.0
+            roll_vel = 0.0
+            reach_flat_target = 0.0
+
+            # ========== robot_lab 标准奖励 ==========
+            # General
+            termination = -10.0
+
+            # Root penalties (参考 robot_lab/velocity_env_cfg.py)
+            lin_vel_z = -2.0           # lin_vel_z_l2
+            ang_vel_xy = -0.5          # ang_vel_xy_l2
+            # flat_orientation_l2 = 0.0  # 由 upward 替代
+
+            # Joint penalties
+            torques = -1e-3            # joint_torques_l2 (robot_lab 标准值)
+            # joint_vel_l2 = 0.0
+            # joint_acc_l2 = -2.5e-6
+            # joint_pos_limits = 0.0
+            # joint_power = 0.0
+
+            # Action penalties
+            action_rate = -0.05        # action_rate_l2 (robot_lab 标准值)
+
+            # Contact sensor
+            # undesired_contacts = 0.0
+
+            # 倒地自救核心奖励
+            upward = 1.0               # 鼓励直立姿态
 
     class domain_rand(WheelLeggedVMCCfg.domain_rand):
         push_robots = False

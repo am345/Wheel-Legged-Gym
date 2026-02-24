@@ -212,6 +212,10 @@ class LeggedRobotVMCBalance(LeggedRobotVMC):
         """惩罚 roll 角速度"""
         return torch.square(self.roll_vel)
 
+    def _reward_upward(self):
+        """保持机体竖直：projected_gravity·z 接近 -1"""
+        return torch.square(1.0 + self.projected_gravity[:, 2])
+
     def _reward_leg_angle_zero(self):
         """惩罚腿部摆角在世界坐标系下偏离垂直 - 使用指数衰减
 
