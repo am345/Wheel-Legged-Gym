@@ -40,8 +40,14 @@ class LeggedRobotVMCBalance(LeggedRobotVMC):
         # 启动流程控制
         self.ready_for_control = torch.zeros(self.num_envs, device=self.device, dtype=torch.bool)
         self.settling_time = torch.zeros(self.num_envs, device=self.device, dtype=torch.float)
-        self.settling_threshold = 1  # 稳定时间阈值（秒）
-        self.vel_stable_threshold = 0.1  # 速度稳定阈值（m/s 或 rad/s）
+        self.settling_threshold = 0.2  # 稳定时间阈值（秒）- 更快进入控制
+        self.vel_stable_threshold = 0.3  # 速度稳定阈值（m/s 或 rad/s）
+
+        # 调试日志
+        import os
+        self.debug_log_path = "/tmp/balance_debug.log"
+        if os.path.exists(self.debug_log_path):
+            os.remove(self.debug_log_path)
 
     def post_physics_step(self):
         """在每个物理步之后计算 pitch 和 roll，并检查是否稳定"""
@@ -76,10 +82,82 @@ class LeggedRobotVMCBalance(LeggedRobotVMC):
         # 稳定时间超过阈值后，允许控制
         self.ready_for_control = self.settling_time >= self.settling_threshold
 
+        # 添加调试信息到 TensorBoard
+        self.extras["ready_ratio"] = self.ready_for_control.float().mean()
+        self.extras["settling_time_mean"] = self.settling_time.mean()
+        self.extras["lin_vel_norm_mean"] = lin_vel_norm.mean()
+        self.extras["ang_vel_norm_mean"] = ang_vel_norm.mean()
+        self.extras["pitch_angle_abs_mean"] = torch.abs(self.pitch_angle).mean()
+        self.extras["roll_angle_abs_mean"] = torch.abs(self.roll_angle).mean()
+
+        # 添加腿部角度信息
+        theta_world = self.theta0 + self.pitch_angle.unsqueeze(1)
+        self.extras["theta_world_abs_mean"] = torch.abs(theta_world).mean()
+
+        # 调试信息（每 100 步打印一次）
+        if self.common_step_counter % 100 == 0:
+            ready_ratio = self.ready_for_control.float().mean().item()
+            avg_lin_vel = lin_vel_norm.mean().item()
+            avg_ang_vel = ang_vel_norm.mean().item()
+            avg_settling = self.settling_time.mean().item()
+            avg_pitch = torch.abs(self.pitch_angle).mean().item() * 57.3
+            avg_roll = torch.abs(self.roll_angle).mean().item() * 57.3
+
+            with open(self.debug_log_path, 'a', encoding='utf-8') as f:
+                f.write(f"Step {self.common_step_counter}: Ready={ready_ratio:.2%}, LinVel={avg_lin_vel:.3f}, AngVel={avg_ang_vel:.3f}, Settling={avg_settling:.2f}s, Pitch={avg_pitch:.1f}deg, Roll={avg_roll:.1f}deg\n")
+
     def compute_observations(self):
-        """计算观测"""
-        obs = super().compute_observations()
-        return obs
+        """计算观测，增加线速度/高度/ready标志"""
+        # 基于 VMC 的观测
+        obs_buf = torch.cat(
+            (
+                self.base_ang_vel * self.obs_scales.ang_vel,
+                self.projected_gravity,
+                self.commands[:, :3] * self.commands_scale,
+                self.theta0 * self.obs_scales.dof_pos,
+                self.theta0_dot * self.obs_scales.dof_vel,
+                self.L0 * self.obs_scales.l0,
+                self.L0_dot * self.obs_scales.l0_dot,
+                self.dof_pos[:, [2, 5]] * self.obs_scales.dof_pos,
+                self.dof_vel[:, [2, 5]] * self.obs_scales.dof_vel,
+                self.base_lin_vel * self.obs_scales.lin_vel,
+                self.base_height.unsqueeze(1) * self.obs_scales.height_measurements,
+                self.ready_for_control.unsqueeze(1).float(),
+                self.actions,
+            ),
+            dim=-1,
+        )
+        self.obs_buf = obs_buf
+
+        # privileged obs 维度在配置里已更新
+        if self.num_privileged_obs is not None:
+            heights = (
+                torch.clip(
+                    self.root_states[:, 2].unsqueeze(1) - 0.5 - self.measured_heights,
+                    -1,
+                    1.0,
+                )
+                * self.obs_scales.height_measurements
+            )
+            self.privileged_obs_buf = torch.cat(
+                (
+                    self.base_lin_vel * self.obs_scales.lin_vel,
+                    self.obs_buf,
+                    self.last_actions[:, :, 0],
+                    self.last_actions[:, :, 1],
+                    self.dof_acc * self.obs_scales.dof_acc,
+                    (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos,
+                    self.dof_vel * self.obs_scales.dof_vel,
+                    heights,
+                    self.torques * self.obs_scales.torque,
+                    (self.base_mass - self.base_mass.mean()).view(self.num_envs, 1),
+                    self.base_com,
+                    self.default_dof_pos - self.raw_default_dof_pos,
+                ),
+                dim=-1,
+            )
+
+        return self.obs_buf
 
     def _compute_torques(self, actions):
         """计算力矩，在稳定前强制腿伸长"""
@@ -95,23 +173,34 @@ class LeggedRobotVMCBalance(LeggedRobotVMC):
             lf1_idx = self.dof_names.index("lf1_Joint") if "lf1_Joint" in self.dof_names else 1
             rf1_idx = self.dof_names.index("rf1_Joint") if "rf1_Joint" in self.dof_names else 4
 
+            # 调试：记录扭矩
+            if self.common_step_counter % 100 == 0 and not_ready.any():
+                first_not_ready = torch.where(not_ready)[0][0]
+                with open(self.debug_log_path, 'a', encoding='utf-8') as f:
+                    f.write(f"  Before: {torques[first_not_ready].cpu().numpy()}\n")
+
             # 所有关节零扭矩
             torques[not_ready, :] = 0.0
 
             # 小腿关节给大的负扭矩（模拟气弹簧撑开）
-            # 负扭矩让小腿伸长
-            torques[not_ready, lf1_idx] = -50.0  # N*m，根据实际调整
+            torques[not_ready, lf1_idx] = -50.0
             torques[not_ready, rf1_idx] = -50.0
+
+            if self.common_step_counter % 100 == 0 and not_ready.any():
+                with open(self.debug_log_path, 'a', encoding='utf-8') as f:
+                    f.write(f"  After: {torques[first_not_ready].cpu().numpy()}\n")
 
         return torques
 
     def _reward_pitch_angle(self):
-        """惩罚 pitch 角度偏差"""
-        return torch.square(self.pitch_angle)
+        """惩罚 pitch 角度偏差 - 使用指数衰减避免大角度时惩罚爆炸"""
+        # exp(-|angle|): angle=0时reward=1, angle=1.57(90°)时reward=0.21
+        # 配合负权重使用，角度越小奖励越高
+        return torch.exp(-torch.abs(self.pitch_angle))
 
     def _reward_roll_angle(self):
-        """惩罚 roll 角度偏差"""
-        return torch.square(self.roll_angle)
+        """惩罚 roll 角度偏差 - 使用指数衰减避免大角度时惩罚爆炸"""
+        return torch.exp(-torch.abs(self.roll_angle))
 
     def _reward_pitch_vel(self):
         """惩罚 pitch 角速度"""
@@ -122,8 +211,16 @@ class LeggedRobotVMCBalance(LeggedRobotVMC):
         return torch.square(self.roll_vel)
 
     def _reward_leg_angle_zero(self):
-        """惩罚腿部摆角偏离垂直"""
-        return torch.sum(torch.square(self.theta0), dim=1)
+        """惩罚腿部摆角在世界坐标系下偏离垂直 - 使用指数衰减
+
+        theta0 是本体坐标系下的腿部前后摆角，只和 pitch 有关
+        世界坐标系下的腿部摆角 = 本体坐标系摆角 + pitch 角
+        """
+        # 世界坐标系下的腿部摆角（左右腿相同，都只加 pitch）
+        theta_world = self.theta0 + self.pitch_angle.unsqueeze(1)
+
+        # 使用指数衰减而不是平方，避免大角度时惩罚爆炸
+        return torch.sum(torch.exp(-torch.abs(theta_world)), dim=1)
 
     def _reward_reach_flat_target(self):
         """奖励达到 Flat 初始条件（两阶段切换的目标）"""
@@ -197,6 +294,15 @@ class LeggedRobotVMCBalance(LeggedRobotVMC):
         # 速度设为 0
         self.dof_vel[env_ids, lf1_idx] = 0.0
         self.dof_vel[env_ids, rf1_idx] = 0.0
+
+        # 将修改后的关节状态写回仿真
+        env_ids_int32 = env_ids.to(dtype=torch.int32)
+        self.gym.set_dof_state_tensor_indexed(
+            self.sim,
+            gymtorch.unwrap_tensor(self.dof_state),
+            gymtorch.unwrap_tensor(env_ids_int32),
+            len(env_ids_int32),
+        )
 
     def _reset_root_states(self, env_ids):
         """重置根状态，应用大范围随机姿态"""
