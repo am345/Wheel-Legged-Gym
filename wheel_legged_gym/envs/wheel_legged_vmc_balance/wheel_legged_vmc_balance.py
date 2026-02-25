@@ -21,6 +21,39 @@ class LeggedRobotVMCBalance(LeggedRobotVMC):
     ):
         super().__init__(cfg, sim_params, physics_engine, sim_device, headless)
 
+        # 计算pitch角度用于提示
+        self.pitch_angle = torch.zeros(self.num_envs, device=self.device, dtype=torch.float)
+
+    def post_physics_step(self):
+        """计算pitch角度"""
+        super().post_physics_step()
+
+        # 计算pitch角度（从projected_gravity）
+        self.pitch_angle = torch.atan2(
+            self.projected_gravity[:, 1],
+            -self.projected_gravity[:, 2]
+        )
+
+    def _compute_torques(self, actions):
+        """当pitch角度过大时，强制腿伸长作为提示"""
+        # 调用父类计算正常力矩
+        torques = super()._compute_torques(actions)
+
+        # 检查pitch角度是否超过阈值（20度 = 0.349 rad）
+        pitch_threshold = 0.349  # 20度
+        large_pitch = torch.abs(self.pitch_angle) > pitch_threshold
+
+        if large_pitch.any():
+            # 找到小腿关节索引（lf1, rf1）
+            lf1_idx = self.dof_names.index("lf1_Joint") if "lf1_Joint" in self.dof_names else 1
+            rf1_idx = self.dof_names.index("rf1_Joint") if "rf1_Joint" in self.dof_names else 4
+
+            # 对pitch角度过大的环境，给小腿关节施加负扭矩（伸长腿）
+            torques[large_pitch, lf1_idx] = -30.0
+            torques[large_pitch, rf1_idx] = -30.0
+
+        return torques
+
     def _reward_upward(self):
         """鼓励机体保持直立：projected_gravity·z 接近 -1 (robot_lab 标准)"""
         return torch.square(1.0 + self.projected_gravity[:, 2])

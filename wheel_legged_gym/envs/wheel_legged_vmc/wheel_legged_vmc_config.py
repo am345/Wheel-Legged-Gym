@@ -42,11 +42,11 @@ class WheelLeggedVMCCfg(WheelLeggedCfg):
 
     class control(WheelLeggedCfg.control):
         action_scale_theta = 3.14
-        action_scale_l0 = 0.07
+        action_scale_l0 = 0.10
         action_scale_vel = 5.0
 
         l0_offset = 0.22
-        feedforward_force = 0.0  # [N]
+        feedforward_force = 40.0  # [N]
 
         kp_theta = 10.0  # [N*m/rad]
         kd_theta = 5  # [N*m*s/rad]5

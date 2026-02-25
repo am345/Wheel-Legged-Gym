@@ -15,10 +15,18 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
     class terrain(WheelLeggedVMCCfg.terrain):
         mesh_type = "plane"
 
+    class commands(WheelLeggedVMCCfg.commands):
+        # 关闭curriculum，因为不需要速度跟踪
+        curriculum = False
+
     class rewards(WheelLeggedVMCCfg.rewards):
         class scales(WheelLeggedVMCCfg.rewards.scales):
-            # 倒地自救核心奖励：惩罚偏离直立姿态
-            upward = -30.0
+            # 关闭速度跟踪奖励，专注于站起来
+            tracking_lin_vel = 0.0
+            tracking_ang_vel = 0.0
+
+            # 添加 upward 奖励（倒地自救核心）
+            upward = -1.0
 
     class balance_reset:
         """Random initialization for fall recovery training"""
