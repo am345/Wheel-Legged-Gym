@@ -18,7 +18,7 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
     class rewards(WheelLeggedVMCCfg.rewards):
         class scales(WheelLeggedVMCCfg.rewards.scales):
             # 倒地自救核心奖励：惩罚偏离直立姿态
-            upward = -1.0
+            upward = -30.0
 
     class balance_reset:
         """Random initialization for fall recovery training"""
