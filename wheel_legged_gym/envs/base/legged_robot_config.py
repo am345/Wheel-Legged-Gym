@@ -33,7 +33,7 @@ from .base_config import BaseConfig
 
 class LeggedRobotCfg(BaseConfig):
     class env:
-        num_envs = 512
+        num_envs = 4096
         num_observations = 27
         num_privileged_obs = (
             num_observations + 7 * 11 + 3 + 6 * 5 + 3 + 3
