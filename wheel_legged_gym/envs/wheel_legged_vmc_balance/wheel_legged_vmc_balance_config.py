@@ -54,5 +54,5 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
 class WheelLeggedVMCBalanceCfgPPO(WheelLeggedVMCCfgPPO):
     class runner(WheelLeggedVMCCfgPPO.runner):
         experiment_name = "wheel_legged_vmc_balance"
-        max_iterations = 2000
+        max_iterations = 5000
         save_interval = 50
