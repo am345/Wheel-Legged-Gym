@@ -72,7 +72,10 @@ def replay_reference_rollout_in_mujoco(
     model_path: str | Path,
     controller_mode: str = "vmc_balance_exact",
     domain_rand_mode: str = "off",
+<<<<<<< HEAD
     mujoco_tuning_profile: str = "exact_baseline",
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
     seed: int = 0,
     max_steps: int | None = None,
 ) -> Dict[str, Any]:
@@ -90,7 +93,10 @@ def replay_reference_rollout_in_mujoco(
         seed=seed,
         controller_mode=controller_mode,
         domain_rand_mode=domain_rand_mode,
+<<<<<<< HEAD
         mujoco_tuning_profile=mujoco_tuning_profile,
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
     )
 
     # Reference init state (Isaac root quaternion is xyzw)

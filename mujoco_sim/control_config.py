@@ -9,7 +9,11 @@ MuJoCo sim2sim 控制与随机化参数配置（镜像训练侧关键参数）
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
+<<<<<<< HEAD
 from typing import Dict, List, Optional, Tuple
+=======
+from typing import Dict, List, Tuple
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 
 import numpy as np
 
@@ -32,9 +36,12 @@ class BalanceResetRanges:
     def to_dict(self) -> Dict[str, List[float]]:
         return {k: list(v) for k, v in asdict(self).items()}
 
+<<<<<<< HEAD
     def copy(self) -> "BalanceResetRanges":
         return BalanceResetRanges(**asdict(self))
 
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 
 @dataclass
 class BalanceVMCControlConfig:
@@ -148,6 +155,7 @@ class BalanceVMCControlConfig:
 
 
 @dataclass
+<<<<<<< HEAD
 class MuJoCoDemoTuningProfile:
     """MuJoCo-only tuning scales for demo usability (keeps action/obs semantics unchanged)."""
 
@@ -167,6 +175,8 @@ class MuJoCoDemoTuningProfile:
 
 
 @dataclass
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 class DomainRandTrainRanges:
     # Contact
     randomize_friction: bool = True
@@ -212,6 +222,7 @@ def get_balance_vmc_control_config() -> BalanceVMCControlConfig:
 def get_domain_rand_train_ranges() -> DomainRandTrainRanges:
     return DomainRandTrainRanges()
 
+<<<<<<< HEAD
 
 def get_balance_reset_profile(
     profile_name: Optional[str],
@@ -279,3 +290,5 @@ def get_mujoco_demo_tuning_profile(profile_name: str = "exact_baseline") -> MuJo
         f"Unsupported mujoco tuning profile: {profile_name}. "
         "Expected one of {exact_baseline, demo_tuned}."
     )
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e

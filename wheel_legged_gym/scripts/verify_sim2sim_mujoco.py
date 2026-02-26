@@ -262,6 +262,7 @@ class RolloutMetrics:
         ctrl_dbg = dbg.get("control_debug") or {}
         out = {
             "mode": dbg.get("controller_mode"),
+<<<<<<< HEAD
             "mujoco_tuning_profile": dbg.get("mujoco_tuning_profile"),
             "reset_profile": dbg.get("reset_profile"),
             "action_delay_idx": dbg.get("action_delay_idx"),
@@ -274,6 +275,13 @@ class RolloutMetrics:
             "final_tilt_deg": dbg.get("tilt_deg"),
             "joint_limit_hit_flags": dbg.get("joint_limit_hit_flags"),
             "joint_limit_margin": dbg.get("joint_limit_margin"),
+=======
+            "action_delay_idx": dbg.get("action_delay_idx"),
+            "prompt_torque_step_count": dbg.get("prompt_torque_step_count"),
+            "torque_saturation_count": dbg.get("torque_saturation_count"),
+            "action_clip_count": dbg.get("action_clip_count"),
+            "final_pitch_angle": dbg.get("pitch_angle"),
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
             "contacts": dbg.get("contacts"),
             "last_ctrl": dbg.get("last_ctrl"),
         }
@@ -445,6 +453,7 @@ def parse_args() -> argparse.Namespace:
         help="MuJoCo 控制模式",
     )
     parser.add_argument(
+<<<<<<< HEAD
         "--mujoco-tuning-profile",
         type=str,
         default="exact_baseline",
@@ -452,6 +461,8 @@ def parse_args() -> argparse.Namespace:
         help="MuJoCo-only tuning profile (exact_baseline for real line, demo_tuned for demo line).",
     )
     parser.add_argument(
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
         "--domain-rand-mode",
         type=str,
         default=DEFAULT_DOMAIN_RAND_MODE,
@@ -459,6 +470,7 @@ def parse_args() -> argparse.Namespace:
         help="MuJoCo 域随机化模式",
     )
     parser.add_argument(
+<<<<<<< HEAD
         "--reset-profile",
         type=str,
         default="default",
@@ -466,6 +478,8 @@ def parse_args() -> argparse.Namespace:
         help="Reset profile for environment resets (default keeps existing behavior).",
     )
     parser.add_argument(
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
         "--eval-fall-tilt-deg",
         type=float,
         default=60.0,
@@ -555,8 +569,11 @@ def print_config_summary(args: argparse.Namespace, model_path: Path, checkpoints
     print(f"randomize_reset:     {args.randomize_reset}")
     print(f"domain_rand_mode:    {args.domain_rand_mode}")
     print(f"controller_mode:     {args.controller_mode}")
+<<<<<<< HEAD
     print(f"mujoco_tuning:       {args.mujoco_tuning_profile}")
     print(f"reset_profile:       {args.reset_profile}")
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
     print(f"eval_fall_tilt_deg:  {args.eval_fall_tilt_deg}")
     print(f"render:              {args.render}")
     print(f"output:              {args.output}")
@@ -594,7 +611,10 @@ def run_preflight_checks(
     policy: PolicyLoader,
     *,
     randomize_reset: bool,
+<<<<<<< HEAD
     reset_profile: str,
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
     seed_diag: Dict[str, Any],
 ) -> Dict[str, Any]:
     print("\n开始 Preflight 检查...")
@@ -631,7 +651,11 @@ def run_preflight_checks(
             f"torch_initial_seed={seed_diag['torch_initial_seed']} expected={seed_diag['seed']}"
         )
 
+<<<<<<< HEAD
     obs = env.reset(randomize=randomize_reset, domain_randomize=False, reset_profile=reset_profile)
+=======
+    obs = env.reset(randomize=randomize_reset, domain_randomize=False)
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
     if obs.shape != (27,):
         errors.append(f"Observation shape mismatch: expected (27,), got {obs.shape}")
     if not np.all(np.isfinite(obs)):
@@ -652,7 +676,10 @@ def run_preflight_checks(
     if not np.all(np.isfinite(env.last_ctrl)):
         errors.append("Control output contains NaN/Inf during preflight")
 
+<<<<<<< HEAD
     diag = env.get_model_diagnostics()
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
     print("Preflight 诊断:")
     print(f"  joint_qpos_addrs: {diag['joint_qpos_addrs']}")
     print(f"  joint_dof_addrs:  {diag['joint_dof_addrs']}")
@@ -672,10 +699,13 @@ def run_preflight_checks(
         f"{diag['fidelity_level']} / {diag['domain_rand_mode']}"
     )
     print(
+<<<<<<< HEAD
         f"  reset/tuning:      {diag.get('current_reset_profile')} / "
         f"{diag.get('mujoco_tuning_profile')}"
     )
     print(
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
         "  wheel_collision:  "
         f"mode={diag.get('wheel_collision_mode_detected')} "
         f"(mesh={diag.get('wheel_collision_mesh_count')}, "
@@ -713,7 +743,10 @@ def run_preflight_checks(
         "timing": {"dt": diag["dt"], "sim_dt": diag["sim_dt"], "decimation": diag["decimation"]},
         "seed_check": seed_diag,
         "env_diagnostics": to_jsonable(diag),
+<<<<<<< HEAD
         "reset_profile": str(reset_profile),
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
         "collision_representation": {
             "wheel_collision_mode_detected": diag.get("wheel_collision_mode_detected"),
             "wheel_collision_geom_names": diag.get("wheel_collision_geom_names"),
@@ -779,17 +812,25 @@ def build_metadata(
         "model_path": str(model_path.resolve()),
         "controller_mode": env.implemented_controller_mode,
         "controller_mode_requested": args.controller_mode,
+<<<<<<< HEAD
         "mujoco_tuning_profile": args.mujoco_tuning_profile,
         "fidelity_level": env.fidelity_level,
         "domain_rand_mode": args.domain_rand_mode,
         "reset_profile": args.reset_profile,
+=======
+        "fidelity_level": env.fidelity_level,
+        "domain_rand_mode": args.domain_rand_mode,
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
         "episodes_requested": int(args.episodes),
         "max_steps": int(args.max_steps),
         "seed": int(args.seed),
         "randomize_reset": bool(args.randomize_reset),
         "device": str(args.device),
         "render": bool(args.render),
+<<<<<<< HEAD
         "wait_mode": "n/a",
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
         "record_episode_params": bool(args.record_episode_params),
         "eval_fall_tilt_deg": float(args.eval_fall_tilt_deg),
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -833,7 +874,10 @@ def evaluate_single_checkpoint(
             seed=args.seed,
             controller_mode=args.controller_mode,
             domain_rand_mode=args.domain_rand_mode,
+<<<<<<< HEAD
             mujoco_tuning_profile=args.mujoco_tuning_profile,
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
         )
         env.max_episode_steps = int(args.max_steps)
 
@@ -848,7 +892,10 @@ def evaluate_single_checkpoint(
             env=env,
             policy=policy,
             randomize_reset=args.randomize_reset,
+<<<<<<< HEAD
             reset_profile=args.reset_profile,
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
             seed_diag=seed_diag,
         )
 
@@ -868,7 +915,10 @@ def evaluate_single_checkpoint(
             obs = env.reset(
                 randomize=args.randomize_reset,
                 domain_randomize=(args.domain_rand_mode != "off"),
+<<<<<<< HEAD
                 reset_profile=args.reset_profile,
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
             )
             policy.reset()
 
@@ -941,7 +991,10 @@ def evaluate_single_checkpoint(
                 model_path=model_path,
                 controller_mode=args.controller_mode,
                 domain_rand_mode="off",
+<<<<<<< HEAD
                 mujoco_tuning_profile=args.mujoco_tuning_profile,
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
                 seed=args.seed,
             )
             print(

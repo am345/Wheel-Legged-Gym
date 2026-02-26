@@ -17,11 +17,16 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from .control_config import (
+<<<<<<< HEAD
     BalanceResetRanges,
     BalanceVMCControlConfig,
     get_balance_vmc_control_config,
     get_balance_reset_profile,
     get_mujoco_demo_tuning_profile,
+=======
+    BalanceVMCControlConfig,
+    get_balance_vmc_control_config,
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 )
 from .domain_randomizer import MuJoCoDomainRandomizer
 from .observation_computer import ObservationComputer
@@ -43,7 +48,10 @@ class MuJoCoBalanceEnv:
         domain_rand_mode: str = "off",
         control_cfg: Optional[BalanceVMCControlConfig] = None,
         fidelity_level: Optional[str] = None,
+<<<<<<< HEAD
         mujoco_tuning_profile: str = "exact_baseline",
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
     ):
         if controller_mode not in self.SUPPORTED_CONTROLLER_MODES:
             raise ValueError(
@@ -64,7 +72,10 @@ class MuJoCoBalanceEnv:
         self.domain_rand_mode = domain_rand_mode
         self.render_enabled = bool(render)
         self.viewer = None
+<<<<<<< HEAD
         self.wait_mode = "n/a"
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
         self.fidelity_level = (
             fidelity_level
             if fidelity_level is not None
@@ -72,8 +83,11 @@ class MuJoCoBalanceEnv:
         )
 
         self.cfg = control_cfg if control_cfg is not None else get_balance_vmc_control_config()
+<<<<<<< HEAD
         self.mujoco_tuning_profile = get_mujoco_demo_tuning_profile(mujoco_tuning_profile)
         self.mujoco_tuning_profile_name = self.mujoco_tuning_profile.name
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
         self.vmc = VMCKinematics(l1=self.cfg.l1, l2=self.cfg.l2, offset=self.cfg.offset)
         self.obs_computer = ObservationComputer(control_cfg=self.cfg)
 
@@ -109,6 +123,7 @@ class MuJoCoBalanceEnv:
             raise ValueError(f"Missing expected joints in MJCF model: {missing}")
         self.joint_qpos_addrs = [int(self.model.jnt_qposadr[jid]) for jid in self.joint_ids]
         self.joint_dof_addrs = [int(self.model.jnt_dofadr[jid]) for jid in self.joint_ids]
+<<<<<<< HEAD
         if hasattr(self.model, "jnt_limited"):
             self.joint_limited = np.array(
                 [bool(int(self.model.jnt_limited[jid])) for jid in self.joint_ids],
@@ -128,6 +143,8 @@ class MuJoCoBalanceEnv:
             [self.model.jnt_range[jid].copy() for jid in self.joint_ids],
             dtype=np.float64,
         )
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 
         self.actuator_names = [
             "lf0_act",
@@ -179,9 +196,12 @@ class MuJoCoBalanceEnv:
         self.base_l0_kp = np.full(2, self.cfg.kp_l0, dtype=np.float64)
         self.base_l0_kd = np.full(2, self.cfg.kd_l0, dtype=np.float64)
         self.base_wheel_kd = np.full(2, self.cfg.wheel_kd, dtype=np.float64)
+<<<<<<< HEAD
         self.base_feedforward_force = float(self.cfg.feedforward_force)
         self.base_balance_hint_pitch_threshold_rad = float(self.cfg.balance_hint_pitch_threshold_rad)
         self.base_balance_hint_knee_torque = float(self.cfg.balance_hint_knee_torque)
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 
         self.current_default_dof_pos = self.base_default_dof_pos.copy()
         self.current_torque_limits = self.base_torque_limits.copy()
@@ -193,9 +213,12 @@ class MuJoCoBalanceEnv:
         self.current_l0_kp = self.base_l0_kp.copy()
         self.current_l0_kd = self.base_l0_kd.copy()
         self.current_wheel_kd = self.base_wheel_kd.copy()
+<<<<<<< HEAD
         self.current_feedforward_force = float(self.base_feedforward_force)
         self.current_balance_hint_pitch_threshold_rad = float(self.base_balance_hint_pitch_threshold_rad)
         self.current_balance_hint_knee_torque = float(self.base_balance_hint_knee_torque)
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 
         # Domain randomization
         self.baseline_model_params = {
@@ -219,7 +242,10 @@ class MuJoCoBalanceEnv:
             "mode": "baseline",
             "randomized": False,
         }
+<<<<<<< HEAD
         self.current_reset_profile = "hard_random_balance"
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 
         # Action delay FIFO (training delay range is [0, 10] ms with sim_dt=5ms)
         delay_ms_max = 10.0
@@ -271,7 +297,10 @@ class MuJoCoBalanceEnv:
         mujoco.mj_resetData(self.model, self.data)
         self._post_reset_apply_default_state()
         self._refresh_state_from_sim(init_from_current=True)
+<<<<<<< HEAD
         self._apply_mujoco_tuning_profile()
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 
         print("Environment initialized successfully")
         print(f"  DOFs (qvel): {self.model.nv}")
@@ -282,24 +311,34 @@ class MuJoCoBalanceEnv:
         print(f"  Controller mode: {self.implemented_controller_mode}")
         print(f"  Domain rand mode: {self.domain_rand_mode}")
         print(f"  Fidelity level: {self.fidelity_level}")
+<<<<<<< HEAD
         print(f"  MuJoCo tuning profile: {self.mujoco_tuning_profile_name}")
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 
     # ---------------------------------------------------------------------
     # Public API
     # ---------------------------------------------------------------------
+<<<<<<< HEAD
     def reset(
         self,
         randomize: bool = True,
         domain_randomize: Optional[bool] = None,
         reset_profile: Optional[str] = None,
     ):
+=======
+    def reset(self, randomize: bool = True, domain_randomize: Optional[bool] = None):
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
         """
         Reset environment state.
 
         Args:
             randomize: balance root randomization (pose/vel) on reset
             domain_randomize: override episode-level domain randomization behavior
+<<<<<<< HEAD
             reset_profile: reset profile name (default -> hard_random_balance; nominal_demo for demos)
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 
         Returns:
             obs: (27,)
@@ -320,16 +359,23 @@ class MuJoCoBalanceEnv:
                 "randomized": False,
                 "restitution_application": "none",
             }
+<<<<<<< HEAD
         # Re-apply static MuJoCo tuning on top of baseline/DR parameters.
         self._apply_mujoco_tuning_profile()
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 
         # Apply dof defaults (after default_dof_pos randomization)
         self._post_reset_apply_default_state()
         if randomize:
+<<<<<<< HEAD
             self.current_reset_profile, ranges = self._resolve_reset_profile(reset_profile)
             self._apply_balance_root_randomization(ranges)
         else:
             self.current_reset_profile = "fixed"
+=======
+            self._apply_balance_root_randomization()
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 
         mujoco.mj_forward(self.model, self.data)
 
@@ -405,8 +451,11 @@ class MuJoCoBalanceEnv:
             "base_height": float(self.data.qpos[2]),
             "controller_mode": self.implemented_controller_mode,
             "domain_params": self.current_domain_params,
+<<<<<<< HEAD
             "reset_profile": self.current_reset_profile,
             "mujoco_tuning_profile": self.mujoco_tuning_profile_name,
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
             "termination_reason": self.last_termination_reason,
             "prompt_torque_triggered": bool(self.prompt_torque_triggered_last_step),
             "pitch_angle": float(self.pitch_angle),
@@ -517,6 +566,7 @@ class MuJoCoBalanceEnv:
             "right_wheel_contact": bool(right_wheel_contact),
         }
 
+<<<<<<< HEAD
     def _joint_limit_diagnostics(self, eps: float = 5e-3) -> Dict[str, Any]:
         margins = np.full(6, np.inf, dtype=np.float64)
         flags = np.zeros(6, dtype=bool)
@@ -554,12 +604,21 @@ class MuJoCoBalanceEnv:
             "fidelity_level": self.fidelity_level,
             "mujoco_tuning_profile": self.mujoco_tuning_profile_name,
             "wait_mode": self.wait_mode,
+=======
+    def get_debug_state(self) -> Dict[str, Any]:
+        return {
+            "controller_mode": self.implemented_controller_mode,
+            "fidelity_level": self.fidelity_level,
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
             "episode_steps": int(self.episode_steps),
             "current_action_obs": self.current_action_obs.copy().tolist(),
             "last_applied_action": self.last_applied_action.copy().tolist(),
             "last_ctrl": self.last_ctrl.copy().tolist(),
             "pitch_angle": float(self.pitch_angle),
+<<<<<<< HEAD
             "tilt_deg": tilt_deg,
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
             "projected_gravity": self.projected_gravity.copy().tolist(),
             "theta0": self.theta0.copy().tolist(),
             "theta0_dot": self.theta0_dot.copy().tolist(),
@@ -569,6 +628,7 @@ class MuJoCoBalanceEnv:
             "dof_vel": self.dof_vel.copy().tolist(),
             "dof_vel_raw": self.dof_vel_raw.copy().tolist(),
             "prompt_torque_triggered_last_step": bool(self.prompt_torque_triggered_last_step),
+<<<<<<< HEAD
             "balance_hint_active": bool(self.prompt_torque_triggered_last_step),
             "prompt_torque_step_count": int(self.prompt_torque_step_count),
             "torque_saturation_count": int(self.torque_saturation_count),
@@ -583,6 +643,13 @@ class MuJoCoBalanceEnv:
             "joint_limit_eps": joint_limit_diag["joint_limit_eps"],
             "joint_limited": self.joint_limited.tolist(),
             "joint_names": list(self.joint_names),
+=======
+            "prompt_torque_step_count": int(self.prompt_torque_step_count),
+            "torque_saturation_count": int(self.torque_saturation_count),
+            "action_clip_count": int(self.action_clip_count),
+            "action_delay_idx": int(self.action_delay_idx),
+            "current_domain_params": self.current_domain_params,
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
             "control_debug": self.last_control_debug,
             "contacts": self.get_contact_flags(),
         }
@@ -663,9 +730,12 @@ class MuJoCoBalanceEnv:
             "implemented_controller_mode": self.implemented_controller_mode,
             "domain_rand_mode": self.domain_rand_mode,
             "fidelity_level": self.fidelity_level,
+<<<<<<< HEAD
             "mujoco_tuning_profile": self.mujoco_tuning_profile_name,
             "current_reset_profile": self.current_reset_profile,
             "wait_mode": self.wait_mode,
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
             "domain_rand_config": self.domain_randomizer.config_dict(),
             "wheel_collision_geom_names": wheel_collision_geom_names,
             "wheel_collision_geom_types": wheel_collision_geom_types,
@@ -690,11 +760,16 @@ class MuJoCoBalanceEnv:
         self.data.qpos[self.joint_qpos_addrs] = self.current_default_dof_pos
         self.data.qvel[self.joint_dof_addrs] = 0.0
 
+<<<<<<< HEAD
     def _resolve_reset_profile(self, reset_profile: Optional[str]) -> tuple[str, BalanceResetRanges]:
         return get_balance_reset_profile(reset_profile, self.cfg)
 
     def _apply_balance_root_randomization(self, r: Optional[BalanceResetRanges] = None):
         r = self.cfg.balance_reset if r is None else r
+=======
+    def _apply_balance_root_randomization(self):
+        r = self.cfg.balance_reset
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 
         self.data.qpos[0] += self.np_random.uniform(*r.x_pos_offset)
         self.data.qpos[1] += self.np_random.uniform(*r.y_pos_offset)
@@ -712,6 +787,7 @@ class MuJoCoBalanceEnv:
         self.data.qvel[4] = self.np_random.uniform(*r.ang_vel_pitch)
         self.data.qvel[5] = self.np_random.uniform(*r.ang_vel_yaw)
 
+<<<<<<< HEAD
     def _apply_mujoco_tuning_profile(self) -> None:
         """Apply MuJoCo-only demo tuning on top of current baseline/DR-adjusted parameters."""
         p = self.mujoco_tuning_profile
@@ -735,6 +811,8 @@ class MuJoCoBalanceEnv:
             else p.balance_hint_knee_torque_override
         )
 
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
     def _push_action_fifo(self, action: np.ndarray):
         self.action_fifo[1:] = self.action_fifo[:-1]
         self.action_fifo[0] = action
@@ -831,7 +909,11 @@ class MuJoCoBalanceEnv:
         torque_wheel = self.current_wheel_kd * (wheel_vel_ref - wheel_vel)
 
         T1, T2 = self.vmc.map_virtual_to_joint_torques(
+<<<<<<< HEAD
             F=force_leg + self.current_feedforward_force,
+=======
+            F=force_leg + self.cfg.feedforward_force,
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
             T=torque_leg,
             theta1=self.theta1,
             theta2=self.theta2,
@@ -845,9 +927,15 @@ class MuJoCoBalanceEnv:
         torques = torques * self.current_torques_scale
 
         prompt_triggered = False
+<<<<<<< HEAD
         if self.cfg.enable_balance_hint and abs(self.pitch_angle) > self.current_balance_hint_pitch_threshold_rad:
             for idx in self.cfg.balance_hint_joint_indices:
                 torques[idx] = self.current_balance_hint_knee_torque
+=======
+        if self.cfg.enable_balance_hint and abs(self.pitch_angle) > self.cfg.balance_hint_pitch_threshold_rad:
+            for idx in self.cfg.balance_hint_joint_indices:
+                torques[idx] = self.cfg.balance_hint_knee_torque
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
             prompt_triggered = True
             self.prompt_torque_step_count += 1
         self.prompt_torque_triggered_last_step = prompt_triggered
@@ -874,10 +962,13 @@ class MuJoCoBalanceEnv:
             "torques_post_clip": torques.tolist(),
             "pitch_angle": float(self.pitch_angle),
             "prompt_torque_triggered": bool(prompt_triggered),
+<<<<<<< HEAD
             "feedforward_force": float(self.current_feedforward_force),
             "balance_hint_pitch_threshold_rad": float(self.current_balance_hint_pitch_threshold_rad),
             "balance_hint_knee_torque": float(self.current_balance_hint_knee_torque),
             "mujoco_tuning_profile": self.mujoco_tuning_profile_name,
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
         }
         return torques
 
