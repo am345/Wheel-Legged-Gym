@@ -23,6 +23,8 @@ class LeggedRobotVMCBalance(LeggedRobotVMC):
 
         # 计算pitch角度用于提示
         self.pitch_angle = torch.zeros(self.num_envs, device=self.device, dtype=torch.float)
+        # Training-visible torques exclude passive gas-spring contribution.
+        self.active_motor_torques = self.torques.clone()
 
     def post_physics_step(self):
         """计算pitch角度"""
@@ -33,6 +35,18 @@ class LeggedRobotVMCBalance(LeggedRobotVMC):
             self.projected_gravity[:, 1],
             -self.projected_gravity[:, 2]
         )
+
+    def _get_training_visible_torques(self):
+        return getattr(self, "active_motor_torques", self.torques)
+
+    def compute_observations(self):
+        """Use active motor torques (excluding gas spring) in privileged torque observations."""
+        torques_total = self.torques
+        self.torques = self._get_training_visible_torques()
+        try:
+            super().compute_observations()
+        finally:
+            self.torques = torques_total
 
     def _compute_torques(self, actions):
         """Balance task VMC torque with optional axial gas-spring force (no pitch prompt torque)."""
@@ -75,31 +89,67 @@ class LeggedRobotVMCBalance(LeggedRobotVMC):
             wheel_vel_ref - self.dof_vel[:, [2, 5]]
         )
 
-        axial_force = self.force_leg + self.cfg.control.feedforward_force
+        active_axial_force = self.force_leg + self.cfg.control.feedforward_force
+        gas_force = torch.zeros_like(self.force_leg)
         if getattr(self.cfg.control, "gas_spring_enable", False):
             # Linear gas spring: F[N] = gain * (k * l[m] + b), where l is current virtual leg length L0.
             gas_force = (
                 getattr(self.cfg.control, "gas_spring_gain", 1.0)
                 * (self.cfg.control.gas_spring_k * self.L0 + self.cfg.control.gas_spring_b)
             )
-            axial_force = axial_force + gas_force
 
-        T1, T2 = self.VMC(axial_force, self.torque_leg)
+        T1_active, T2_active = self.VMC(active_axial_force, self.torque_leg)
+        T1_gas, T2_gas = self.VMC(gas_force, torch.zeros_like(self.torque_leg))
 
-        torques = torch.cat(
+        active_torques = torch.cat(
             (
-                T1[:, 0].unsqueeze(1),
-                T2[:, 0].unsqueeze(1),
+                T1_active[:, 0].unsqueeze(1),
+                T2_active[:, 0].unsqueeze(1),
                 self.torque_wheel[:, 0].unsqueeze(1),
-                T1[:, 1].unsqueeze(1),
-                T2[:, 1].unsqueeze(1),
+                T1_active[:, 1].unsqueeze(1),
+                T2_active[:, 1].unsqueeze(1),
                 self.torque_wheel[:, 1].unsqueeze(1),
             ),
             axis=1,
         )
+        gas_torques = torch.cat(
+            (
+                T1_gas[:, 0].unsqueeze(1),
+                T2_gas[:, 0].unsqueeze(1),
+                torch.zeros_like(self.torque_wheel[:, 0]).unsqueeze(1),
+                T1_gas[:, 1].unsqueeze(1),
+                T2_gas[:, 1].unsqueeze(1),
+                torch.zeros_like(self.torque_wheel[:, 1]).unsqueeze(1),
+            ),
+            axis=1,
+        )
 
-        return torch.clip(
-            torques * self.torques_scale, -self.torque_limits, self.torque_limits
+        # Motor torque randomization / clipping applies only to active motor torques.
+        active_torques_scaled = active_torques * self.torques_scale
+        self.active_motor_torques = torch.clip(
+            active_torques_scaled, -self.torque_limits, self.torque_limits
+        )
+        # Passive gas-spring torques are added directly and do not consume motor torque budget.
+        total_torques = self.active_motor_torques + gas_torques
+
+        return total_torques
+
+    def _reward_torques(self):
+        """Penalize only active motor torque, excluding passive gas-spring torque."""
+        return torch.sum(torch.square(self._get_training_visible_torques()), dim=1)
+
+    def _reward_power(self):
+        """Penalize only active motor power, excluding passive gas-spring torque."""
+        return torch.sum(torch.abs(self._get_training_visible_torques() * self.dof_vel), dim=1)
+
+    def _reward_torque_limits(self):
+        """Penalize active motor torques near limit, excluding passive gas-spring torque."""
+        return torch.sum(
+            (
+                torch.abs(self._get_training_visible_torques())
+                - self.torque_limits * self.cfg.rewards.soft_torque_limit
+            ).clip(min=0.0),
+            dim=1,
         )
 
     def _reward_upward(self):
