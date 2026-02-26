@@ -72,6 +72,8 @@ class PPO:
         self.lam = lam
         self.max_grad_norm = max_grad_norm
         self.use_clipped_value_loss = use_clipped_value_loss
+        self.last_rollout_diagnostics = {}
+        self.last_update_diagnostics = {}
 
     def init_storage(
         self,
@@ -140,6 +142,28 @@ class PPO:
     def compute_returns(self, last_critic_obs):
         last_values = self.actor_critic.evaluate(last_critic_obs).detach()
         self.storage.compute_returns(last_values, self.gamma, self.lam)
+        with torch.inference_mode():
+            returns = self.storage.returns
+            values = self.storage.values
+            value_error = values - returns
+            if self.storage.privileged_observations is not None:
+                critic_obs = self.storage.privileged_observations
+            else:
+                critic_obs = self.storage.observations
+            self.last_rollout_diagnostics = {
+                "returns_mean": float(returns.mean().item()),
+                "returns_std": float(returns.std().item()),
+                "returns_abs_max": float(returns.abs().max().item()),
+                "values_mean": float(values.mean().item()),
+                "values_std": float(values.std().item()),
+                "values_abs_max": float(values.abs().max().item()),
+                "value_error_abs_mean": float(value_error.abs().mean().item()),
+                "value_error_abs_max": float(value_error.abs().max().item()),
+                "critic_obs_abs_max": float(critic_obs.abs().max().item()),
+                "critic_obs_has_nan": bool(torch.isnan(critic_obs).any().item()),
+                "returns_has_nan": bool(torch.isnan(returns).any().item()),
+                "values_has_nan": bool(torch.isnan(values).any().item()),
+            }
 
     def update(self):
         if self.kl_decay != 0:
@@ -148,6 +172,19 @@ class PPO:
         mean_value_loss = 0
         mean_surrogate_loss = 0
         mean_kl = 0
+        diag_sum = {
+            "mb_returns_mean": 0.0,
+            "mb_returns_std": 0.0,
+            "mb_values_mean": 0.0,
+            "mb_values_std": 0.0,
+            "mb_value_error_abs_mean": 0.0,
+        }
+        diag_max = {
+            "mb_returns_abs_max": 0.0,
+            "mb_values_abs_max": 0.0,
+            "mb_value_error_abs_max": 0.0,
+            "mb_critic_obs_abs_max": 0.0,
+        }
         if self.actor_critic.is_recurrent:
             generator = self.storage.reccurent_mini_batch_generator(
                 self.num_mini_batches, self.num_learning_epochs
@@ -213,6 +250,32 @@ class PPO:
 
                     for param_group in self.optimizer.param_groups:
                         param_group["lr"] = self.learning_rate
+
+            with torch.inference_mode():
+                value_error_batch = value_batch - returns_batch
+                diag_sum["mb_returns_mean"] += float(returns_batch.mean().item())
+                diag_sum["mb_returns_std"] += float(returns_batch.std().item())
+                diag_sum["mb_values_mean"] += float(value_batch.mean().item())
+                diag_sum["mb_values_std"] += float(value_batch.std().item())
+                diag_sum["mb_value_error_abs_mean"] += float(
+                    value_error_batch.abs().mean().item()
+                )
+                diag_max["mb_returns_abs_max"] = max(
+                    diag_max["mb_returns_abs_max"],
+                    float(returns_batch.abs().max().item()),
+                )
+                diag_max["mb_values_abs_max"] = max(
+                    diag_max["mb_values_abs_max"],
+                    float(value_batch.abs().max().item()),
+                )
+                diag_max["mb_value_error_abs_max"] = max(
+                    diag_max["mb_value_error_abs_max"],
+                    float(value_error_batch.abs().max().item()),
+                )
+                diag_max["mb_critic_obs_abs_max"] = max(
+                    diag_max["mb_critic_obs_abs_max"],
+                    float(critic_obs_batch.abs().max().item()),
+                )
 
             # Surrogate loss
             ratio = torch.exp(
@@ -288,6 +351,13 @@ class PPO:
         mean_value_loss /= num_updates
         mean_surrogate_loss /= num_updates
         mean_kl /= num_updates
+        if num_updates > 0:
+            self.last_update_diagnostics = {
+                k: v / num_updates for k, v in diag_sum.items()
+            }
+            self.last_update_diagnostics.update(diag_max)
+        else:
+            self.last_update_diagnostics = {}
         if num_updates_extra > 0:
             mean_extra_loss /= num_updates_extra
         self.storage.clear()

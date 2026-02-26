@@ -98,7 +98,7 @@ class LeggedRobotCfg(BaseConfig):
         class ranges:
             lin_vel_x = [-1.0, 1.0]  # min max [m/s]
             ang_vel_yaw = [-3.14, 3.14]  # min max [rad/s]
-            height = [0.14, 0.31]
+            height = [0.20, 0.20]
             heading = [-3.14, 3.14]
 
     class init_state:
@@ -175,23 +175,23 @@ class LeggedRobotCfg(BaseConfig):
 
     class rewards:
         class scales:
-            tracking_lin_vel = 1.0
-            tracking_lin_vel_enhance = 1
-            tracking_ang_vel = 1.0
+            tracking_lin_vel = 0.0
+            tracking_lin_vel_enhance = 0
+            tracking_ang_vel = 0.0
 
-            base_height = 5.0
+            base_height = -3.0
             nominal_state = -0.1
             lin_vel_z = -2.0
             ang_vel_xy = -0.05
             orientation = -4.0
-            base_height_enhance = 0.5
+            base_height_enhance = 0.25
             dof_vel = -5e-5
             dof_acc = -2.5e-7
             torques = -0.0001
             action_rate = -0.01
             action_smooth = -0.01
 
-            collision = -1.0
+            collision = -0.5
             dof_pos_limits = -1.0
 
         only_positive_rewards = False  # if true negative total rewards are clipped at zero (avoids early termination problems)

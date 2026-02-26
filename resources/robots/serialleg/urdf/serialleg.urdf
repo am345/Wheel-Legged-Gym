@@ -97,7 +97,7 @@
     <axis xyz="0.0 -1.0 0.0"/>
     <parent link="base_link"/>
     <child link="lf0_Link"/>
-    <limit effort="30.0" velocity="200.0"/>
+    <limit effort="45.0" velocity="200.0"/>
     <dynamics damping="0" friction="0"/>
   </joint>
 
@@ -153,7 +153,7 @@
     <axis xyz="0.0 -1.0 0.0"/>
     <parent link="lf0_Link"/>
     <child link="lf1_Link"/>
-    <limit effort="30.0" lower="-0.6" upper="0.8" velocity="200.0"/>    <dynamics damping="0" friction="0"/>  </joint>
+    <limit effort="45.0" lower="-0.6" upper="0.8" velocity="200.0"/>    <dynamics damping="0" friction="0"/>  </joint>
 
   <link name="lf1_Link">
     <inertial>
@@ -221,7 +221,7 @@
     <axis xyz="0.0 -1.0 0.0"/>
     <parent link="base_link"/>
     <child link="rf0_Link"/>
-    <limit effort="30.0" velocity="200.0"/>    <dynamics damping="0" friction="0"/>  </joint>
+    <limit effort="45.0" velocity="200.0"/>    <dynamics damping="0" friction="0"/>  </joint>
 
   <link name="rf0_Link">
     <inertial>
@@ -281,7 +281,7 @@
     <axis xyz="0.0 -1.0 0.0"/>
     <parent link="rf0_Link"/>
     <child link="rf1_Link"/>
-    <limit effort="30.0" lower="-0.6" upper="0.8" velocity="200.0"/>    <dynamics damping="0" friction="0"/>  </joint>
+    <limit effort="45.0" lower="-0.6" upper="0.8" velocity="200.0"/>    <dynamics damping="0" friction="0"/>  </joint>
 
   <link name="rf1_Link">
     <inertial>

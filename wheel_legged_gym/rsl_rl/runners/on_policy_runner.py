@@ -205,6 +205,8 @@ class OnPolicyRunner:
             * self.env.num_envs
             / (locs["collection_time"] + locs["learn_time"])
         )
+        rollout_diag = getattr(self.alg, "last_rollout_diagnostics", {}) or {}
+        update_diag = getattr(self.alg, "last_update_diagnostics", {}) or {}
 
         self.writer.add_scalar(
             "Loss/value_function", locs["mean_value_loss"], locs["it"]
@@ -229,6 +231,21 @@ class OnPolicyRunner:
                 "Train/mean_episode_length",
                 statistics.mean(locs["lenbuffer"]),
                 locs["it"],
+            )
+        if rollout_diag:
+            self.writer.add_scalar(
+                "Debug/critic_returns_abs_max", rollout_diag["returns_abs_max"], locs["it"]
+            )
+            self.writer.add_scalar(
+                "Debug/critic_values_abs_max", rollout_diag["values_abs_max"], locs["it"]
+            )
+            self.writer.add_scalar(
+                "Debug/critic_value_error_abs_max",
+                rollout_diag["value_error_abs_max"],
+                locs["it"],
+            )
+            self.writer.add_scalar(
+                "Debug/critic_obs_abs_max", rollout_diag["critic_obs_abs_max"], locs["it"]
             )
 
         str = f" \033[1m Learning iteration {locs['it']}/{locs['num_learning_iterations']} \033[0m "
@@ -259,6 +276,29 @@ class OnPolicyRunner:
             )
             #   f"""{'Mean reward/step:':>{pad}} {locs['mean_reward']:.2f}\n"""
             #   f"""{'Mean length/episode:':>{pad}} {locs['mean_trajectory_length']:.2f}\n""")
+
+        if rollout_diag:
+            log_string += (
+                f"""{'Rollout returns(mean/std/max|):':>{pad}} """
+                f"""{rollout_diag['returns_mean']:.2e} / {rollout_diag['returns_std']:.2e} / {rollout_diag['returns_abs_max']:.2e}\n"""
+                f"""{'Rollout values(mean/std/max|):':>{pad}} """
+                f"""{rollout_diag['values_mean']:.2e} / {rollout_diag['values_std']:.2e} / {rollout_diag['values_abs_max']:.2e}\n"""
+                f"""{'Rollout |V-return|(mean/max):':>{pad}} """
+                f"""{rollout_diag['value_error_abs_mean']:.2e} / {rollout_diag['value_error_abs_max']:.2e}\n"""
+                f"""{'Rollout critic_obs |x|max:':>{pad}} {rollout_diag['critic_obs_abs_max']:.2e}\n"""
+                f"""{'Rollout NaN flags(cobs/ret/val):':>{pad}} """
+                f"""{int(rollout_diag['critic_obs_has_nan'])}/{int(rollout_diag['returns_has_nan'])}/{int(rollout_diag['values_has_nan'])}\n"""
+            )
+        if update_diag:
+            log_string += (
+                f"""{'Update mb returns(mean/std/max|):':>{pad}} """
+                f"""{update_diag['mb_returns_mean']:.2e} / {update_diag['mb_returns_std']:.2e} / {update_diag['mb_returns_abs_max']:.2e}\n"""
+                f"""{'Update mb values(mean/std/max|):':>{pad}} """
+                f"""{update_diag['mb_values_mean']:.2e} / {update_diag['mb_values_std']:.2e} / {update_diag['mb_values_abs_max']:.2e}\n"""
+                f"""{'Update mb |V-return|(mean/max):':>{pad}} """
+                f"""{update_diag['mb_value_error_abs_mean']:.2e} / {update_diag['mb_value_error_abs_max']:.2e}\n"""
+                f"""{'Update mb critic_obs |x|max:':>{pad}} {update_diag['mb_critic_obs_abs_max']:.2e}\n"""
+            )
 
         log_string += ep_string
         log_string += (

@@ -25,6 +25,7 @@ class LeggedRobotVMCBalance(LeggedRobotVMC):
         self.pitch_angle = torch.zeros(self.num_envs, device=self.device, dtype=torch.float)
         # Training-visible torques exclude passive gas-spring contribution.
         self.active_motor_torques = self.torques.clone()
+        self._last_torque_debug_print_common_step = -1
 
     def post_physics_step(self):
         """计算pitch角度"""
@@ -81,6 +82,33 @@ class LeggedRobotVMCBalance(LeggedRobotVMC):
             * self.cfg.control.action_scale_vel
         )
 
+        hint_alpha = 0.0
+        hint_trigger_mask = None
+        if getattr(self.cfg.control, "pitch_l0_hint_enable", False):
+            threshold = float(getattr(self.cfg.control, "pitch_l0_hint_threshold_rad", 0.349))
+            hint_trigger_mask = (torch.abs(self.pitch_angle) > threshold).unsqueeze(1)
+            if bool(hint_trigger_mask.any().item()):
+                anneal_steps = int(getattr(self.cfg.control, "pitch_l0_hint_anneal_steps", 0))
+                if anneal_steps > 0:
+                    step_id = float(getattr(self, "common_step_counter", 0))
+                    hint_alpha = max(0.0, 1.0 - step_id / float(anneal_steps))
+                else:
+                    hint_alpha = 1.0
+                if hint_alpha > 0.0:
+                    l0_ref_max = torch.full_like(
+                        l0_ref,
+                        float(
+                            getattr(
+                                self.cfg.control,
+                                "pitch_l0_hint_target_l0",
+                                self.cfg.control.l0_offset + self.cfg.control.action_scale_l0,
+                            )
+                        ),
+                    )
+                    hinted_l0_ref = torch.where(hint_trigger_mask, l0_ref_max, l0_ref)
+                    # Annealed blend: early training uses strong hint, later fades out to policy target.
+                    l0_ref = (1.0 - hint_alpha) * l0_ref + hint_alpha * hinted_l0_ref
+
         self.torque_leg = (
             self.theta_kp * (theta0_ref - self.theta0) - self.theta_kd * self.theta0_dot
         )
@@ -131,6 +159,29 @@ class LeggedRobotVMCBalance(LeggedRobotVMC):
         )
         # Passive gas-spring torques are added directly and do not consume motor torque budget.
         total_torques = self.active_motor_torques + gas_torques
+
+        if getattr(self.cfg.control, "debug_print_torque_breakdown", False):
+            step_id = int(getattr(self, "common_step_counter", 0))
+            interval = max(1, int(getattr(self.cfg.control, "debug_print_torque_interval", 100)))
+            if (
+                step_id % interval == 0
+                and self._last_torque_debug_print_common_step != step_id
+            ):
+                self._last_torque_debug_print_common_step = step_id
+                env_id = int(getattr(self.cfg.control, "debug_print_torque_env_id", 0))
+                env_id = max(0, min(env_id, self.num_envs - 1))
+                print(
+                    "[balance torque debug] "
+                    f"step={step_id} env={env_id} "
+                    f"pitch={float(self.pitch_angle[env_id].item()):+.3f} "
+                    f"hint_alpha={hint_alpha:.3f} "
+                    f"hint_on={bool(hint_trigger_mask is not None and hint_trigger_mask[env_id, 0].item())} "
+                    f"L0={self.L0[env_id].detach().cpu().tolist()} "
+                    f"gas_force={gas_force[env_id].detach().cpu().tolist()} "
+                    f"gas_spring_torques={gas_torques[env_id].detach().cpu().tolist()} "
+                    f"pos_ctrl_active_motor_torques={self.active_motor_torques[env_id].detach().cpu().tolist()} "
+                    f"total_applied_torques={total_torques[env_id].detach().cpu().tolist()}"
+                )
 
         return total_torques
 
