@@ -646,6 +646,29 @@ def run_preflight_checks(
         f"  controller/fidelity/domain: {diag['implemented_controller_mode']} / "
         f"{diag['fidelity_level']} / {diag['domain_rand_mode']}"
     )
+    print(
+        "  wheel_collision:  "
+        f"mode={diag.get('wheel_collision_mode_detected')} "
+        f"(mesh={diag.get('wheel_collision_mesh_count')}, "
+        f"cylinder={diag.get('wheel_collision_cylinder_count')})"
+    )
+    print(
+        "  wheel_mesh_src:   "
+        f"{diag.get('wheel_collision_mesh_asset_source_detected')} "
+        f"{diag.get('wheel_collision_mesh_asset_names', [])}"
+    )
+    if diag.get("wheel_collision_geom_names"):
+        print(f"  wheel_geoms:      {diag['wheel_collision_geom_names']}")
+
+    if (
+        diag.get("fidelity_level") == "fidelity"
+        and diag.get("implemented_controller_mode") == "vmc_balance_exact"
+        and diag.get("wheel_collision_mode_detected") in {"cylinder", "mixed"}
+    ):
+        print(
+            "[WARN] fidelity MJCF 检测到轮子碰撞并非纯 mesh（cylinder/mixed）。"
+            "结果可能包含碰撞体简化带来的偏差。"
+        )
 
     if errors:
         raise RuntimeError("Preflight checks failed:\n" + "\n".join(f"- {e}" for e in errors))
@@ -661,6 +684,18 @@ def run_preflight_checks(
         "timing": {"dt": diag["dt"], "sim_dt": diag["sim_dt"], "decimation": diag["decimation"]},
         "seed_check": seed_diag,
         "env_diagnostics": to_jsonable(diag),
+        "collision_representation": {
+            "wheel_collision_mode_detected": diag.get("wheel_collision_mode_detected"),
+            "wheel_collision_geom_names": diag.get("wheel_collision_geom_names"),
+            "wheel_collision_geom_types": diag.get("wheel_collision_geom_types"),
+            "wheel_collision_mesh_count": diag.get("wheel_collision_mesh_count"),
+            "wheel_collision_cylinder_count": diag.get("wheel_collision_cylinder_count"),
+            "wheel_collision_mesh_asset_names": diag.get("wheel_collision_mesh_asset_names"),
+            "wheel_collision_mesh_asset_sources": diag.get("wheel_collision_mesh_asset_sources"),
+            "wheel_collision_mesh_asset_source_detected": diag.get(
+                "wheel_collision_mesh_asset_source_detected"
+            ),
+        },
         "preflight_step": {
             "reward": float(rew2),
             "done": bool(done2),
@@ -687,7 +722,12 @@ def build_metadata(
     else:
         notes.append("MuJoCo controller uses simplified_joint_pd baseline (approximate).")
     if env.fidelity_level == "fidelity":
-        notes.append("MJCF uses fidelity model generated from URDF (wheel collision uses analytic cylinder).")
+        collision_info = preflight_info.get("collision_representation", {})
+        detected = collision_info.get("wheel_collision_mode_detected", "unknown")
+        notes.append(
+            "MJCF uses fidelity model generated from URDF "
+            f"(wheel collision mode detected: {detected})."
+        )
     else:
         notes.append("MJCF uses simplified model; dynamics/contact fidelity is limited.")
     notes.append("PhysX and MuJoCo contact dynamics differ; use alignment metrics and rollout metrics jointly.")
@@ -733,6 +773,7 @@ def build_metadata(
             "control_cfg": env.cfg.to_dict() if hasattr(env.cfg, "to_dict") else to_jsonable(env.cfg),
             "domain_rand_cfg": env.domain_randomizer.config_dict(),
         },
+        "collision_representation": preflight_info.get("collision_representation"),
         "code_paths": code_paths,
         "preflight": preflight_info,
     }

@@ -5,9 +5,9 @@
 <robot name="serialleg" version="1.0">
   <link name="base_link">
     <inertial>
-      <origin xyz="-0.0088222 -0.025361 -0.017321" rpy="0.0 0.0 0.0"/>
-      <mass value="9.8096345"/>
-      <inertia ixx="0.2005141" ixy="0.00028877" ixz="0.00558434" iyy="0.18113008" iyz="0.00043606" izz="0.33258942"/>
+      <origin xyz="-0.02538499 -0.02771589 -0.01835494" rpy="0.0 0.0 0.0"/>
+      <mass value="11.88315011"/>
+      <inertia ixx="0.15692301" ixy="-4.4833e-05" ixz="0.00570855" iyy="0.16431743" iyz="0.00218109" izz="0.25847355"/>
     </inertial>
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>

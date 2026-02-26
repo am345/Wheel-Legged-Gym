@@ -1,0 +1,2150 @@
+{
+  "metadata": {
+    "task": "wheel_legged_vmc_balance",
+    "checkpoint_path": "/home/am345/Wheel-Legged-Gym/logs/wheel_legged_vmc_balance/Feb26_13-20-50_/model_2000.pt",
+    "model_path": "/home/am345/Wheel-Legged-Gym/resources/robots/serialleg/mjcf/serialleg_fidelity.xml",
+    "controller_mode": "vmc_balance_exact",
+    "controller_mode_requested": "vmc_balance_exact",
+    "fidelity_level": "fidelity",
+    "domain_rand_mode": "train_ranges",
+    "episodes_requested": 10,
+    "max_steps": 3000,
+    "seed": 0,
+    "randomize_reset": true,
+    "device": "cpu",
+    "render": true,
+    "record_episode_params": true,
+    "eval_fall_tilt_deg": 60.0,
+    "timestamp": "2026-02-26T09:27:44.750677+00:00",
+    "approximate_validation": false,
+    "notes": [
+      "MuJoCo controller uses training-aligned VMC balance control path.",
+      "MJCF uses fidelity model generated from URDF (wheel collision mode detected: mesh).",
+      "PhysX and MuJoCo contact dynamics differ; use alignment metrics and rollout metrics jointly."
+    ],
+    "policy_checkpoint_iter": 2000,
+    "policy_spec": {
+      "num_obs": 27,
+      "num_actions": 6,
+      "obs_history_length": 5,
+      "latent_dim": 3,
+      "encoder_hidden_dims": [
+        128,
+        64
+      ],
+      "actor_hidden_dims": [
+        128,
+        64,
+        32
+      ],
+      "critic_hidden_dims": [
+        256,
+        128,
+        64
+      ],
+      "activation": "elu",
+      "init_noise_std": 1.0,
+      "num_critic_obs": 158
+    },
+    "env_timing": {
+      "dt": 0.01,
+      "sim_dt": 0.005,
+      "decimation": 2
+    },
+    "config_snapshot": {
+      "control_cfg": {
+        "sim_dt": 0.005,
+        "control_decimation": 2,
+        "l1": 0.167,
+        "l2": 0.2,
+        "offset": 0.0,
+        "clip_actions": 100.0,
+        "clip_observations": 100.0,
+        "command": [
+          0.0,
+          0.0,
+          0.24
+        ],
+        "commands_scale": [
+          2.0,
+          0.25,
+          1.0
+        ],
+        "obs_scales_ang_vel": 0.25,
+        "obs_scales_dof_pos": 1.0,
+        "obs_scales_dof_vel": 0.05,
+        "obs_scales_l0": 5.0,
+        "obs_scales_l0_dot": 0.25,
+        "default_dof_pos": [
+          0.4,
+          0.25,
+          0.0,
+          0.4,
+          0.25,
+          0.0
+        ],
+        "torque_limits": [
+          30.0,
+          30.0,
+          2.0,
+          30.0,
+          30.0,
+          2.0
+        ],
+        "action_scale_theta": 3.14,
+        "action_scale_l0": 0.1,
+        "action_scale_vel": 5.0,
+        "l0_offset": 0.22,
+        "feedforward_force": 40.0,
+        "kp_theta": 10.0,
+        "kd_theta": 5.0,
+        "kp_l0": 800.0,
+        "kd_l0": 7.0,
+        "wheel_kd": 0.5,
+        "simple_pos_action_scale": 0.5,
+        "simple_vel_action_scale": 10.0,
+        "simple_p_gains": [
+          40.0,
+          40.0,
+          0.0,
+          40.0,
+          40.0,
+          0.0
+        ],
+        "simple_d_gains": [
+          1.0,
+          1.0,
+          0.5,
+          1.0,
+          1.0,
+          0.5
+        ],
+        "enable_balance_hint": true,
+        "balance_hint_pitch_threshold_rad": 0.349,
+        "balance_hint_knee_torque": -30.0,
+        "balance_hint_joint_indices": [
+          1,
+          4
+        ],
+        "vmc_velocity_fd_dt": 0.001,
+        "dof_vel_use_pos_diff": true,
+        "upright_tilt_threshold_deg": 10.0,
+        "balance_reset": {
+          "x_pos_offset": [
+            0.0,
+            0.0
+          ],
+          "y_pos_offset": [
+            0.0,
+            0.0
+          ],
+          "z_pos_offset": [
+            0.0,
+            0.0
+          ],
+          "roll": [
+            -3.14,
+            3.14
+          ],
+          "pitch": [
+            -3.14,
+            3.14
+          ],
+          "yaw": [
+            -3.14,
+            3.14
+          ],
+          "lin_vel_x": [
+            -0.5,
+            0.5
+          ],
+          "lin_vel_y": [
+            -0.5,
+            0.5
+          ],
+          "lin_vel_z": [
+            -0.5,
+            0.5
+          ],
+          "ang_vel_roll": [
+            -0.5,
+            0.5
+          ],
+          "ang_vel_pitch": [
+            -0.5,
+            0.5
+          ],
+          "ang_vel_yaw": [
+            -0.5,
+            0.5
+          ]
+        }
+      },
+      "domain_rand_cfg": {
+        "randomize_friction": true,
+        "friction_range": [
+          0.1,
+          2.0
+        ],
+        "randomize_restitution": true,
+        "restitution_range": [
+          0.0,
+          1.0
+        ],
+        "randomize_base_mass": true,
+        "added_mass_range": [
+          -2.0,
+          3.0
+        ],
+        "randomize_inertia": true,
+        "randomize_inertia_range": [
+          0.8,
+          1.2
+        ],
+        "randomize_base_com": true,
+        "rand_com_vec": [
+          0.05,
+          0.05,
+          0.05
+        ],
+        "randomize_Kp": true,
+        "randomize_Kp_range": [
+          0.9,
+          1.1
+        ],
+        "randomize_Kd": true,
+        "randomize_Kd_range": [
+          0.9,
+          1.1
+        ],
+        "randomize_motor_torque": true,
+        "randomize_motor_torque_range": [
+          0.9,
+          1.1
+        ],
+        "randomize_default_dof_pos": true,
+        "randomize_default_dof_pos_range": [
+          -0.05,
+          0.05
+        ],
+        "randomize_action_delay": true,
+        "delay_ms_range": [
+          0.0,
+          10.0
+        ],
+        "push_robots": false
+      }
+    },
+    "collision_representation": {
+      "wheel_collision_mode_detected": "mesh",
+      "wheel_collision_geom_names": [
+        "l_wheel_Link_collision_0",
+        "r_wheel_Link_collision_0"
+      ],
+      "wheel_collision_geom_types": [
+        "mesh",
+        "mesh"
+      ],
+      "wheel_collision_mesh_count": 2,
+      "wheel_collision_cylinder_count": 0,
+      "wheel_collision_mesh_asset_names": [
+        "visual_Left_wheel_link",
+        "visual_Right_wheel_link"
+      ],
+      "wheel_collision_mesh_asset_sources": [
+        "visual_stl",
+        "visual_stl"
+      ],
+      "wheel_collision_mesh_asset_source_detected": "visual_stl"
+    },
+    "code_paths": [
+      "wheel_legged_gym/scripts/verify_sim2sim_mujoco.py",
+      "mujoco_sim/mujoco_balance_env.py",
+      "mujoco_sim/observation_computer.py",
+      "mujoco_sim/policy_loader.py",
+      "mujoco_sim/domain_randomizer.py",
+      "mujoco_sim/control_config.py",
+      "mujoco_sim/vmc_kinematics.py",
+      "resources/robots/serialleg/mjcf/serialleg_fidelity.xml"
+    ],
+    "preflight": {
+      "joint_qpos_addrs": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "joint_dof_addrs": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "actuator_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "obs_shape": [
+        27
+      ],
+      "action_shape": [
+        6
+      ],
+      "ctrl_shape": [
+        6
+      ],
+      "timing": {
+        "dt": 0.01,
+        "sim_dt": 0.005,
+        "decimation": 2
+      },
+      "seed_check": {
+        "seed": 0,
+        "numpy_probe": 0.5488135039273248,
+        "torch_probe": 0.49625658988952637,
+        "torch_initial_seed": 0
+      },
+      "env_diagnostics": {
+        "joint_names": [
+          "lf0_Joint",
+          "lf1_Joint",
+          "l_wheel_Joint",
+          "rf0_Joint",
+          "rf1_Joint",
+          "r_wheel_Joint"
+        ],
+        "joint_ids": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "joint_qpos_addrs": [
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "joint_dof_addrs": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "actuator_names": [
+          "lf0_act",
+          "lf1_act",
+          "l_wheel_act",
+          "rf0_act",
+          "rf1_act",
+          "r_wheel_act"
+        ],
+        "actuator_ids": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "ctrl_size": 6,
+        "qpos_size": 13,
+        "qvel_size": 12,
+        "dt": 0.01,
+        "sim_dt": 0.005,
+        "decimation": 2,
+        "controller_mode": "vmc_balance_exact",
+        "implemented_controller_mode": "vmc_balance_exact",
+        "domain_rand_mode": "train_ranges",
+        "fidelity_level": "fidelity",
+        "domain_rand_config": {
+          "randomize_friction": true,
+          "friction_range": [
+            0.1,
+            2.0
+          ],
+          "randomize_restitution": true,
+          "restitution_range": [
+            0.0,
+            1.0
+          ],
+          "randomize_base_mass": true,
+          "added_mass_range": [
+            -2.0,
+            3.0
+          ],
+          "randomize_inertia": true,
+          "randomize_inertia_range": [
+            0.8,
+            1.2
+          ],
+          "randomize_base_com": true,
+          "rand_com_vec": [
+            0.05,
+            0.05,
+            0.05
+          ],
+          "randomize_Kp": true,
+          "randomize_Kp_range": [
+            0.9,
+            1.1
+          ],
+          "randomize_Kd": true,
+          "randomize_Kd_range": [
+            0.9,
+            1.1
+          ],
+          "randomize_motor_torque": true,
+          "randomize_motor_torque_range": [
+            0.9,
+            1.1
+          ],
+          "randomize_default_dof_pos": true,
+          "randomize_default_dof_pos_range": [
+            -0.05,
+            0.05
+          ],
+          "randomize_action_delay": true,
+          "delay_ms_range": [
+            0.0,
+            10.0
+          ],
+          "push_robots": false
+        },
+        "wheel_collision_geom_names": [
+          "l_wheel_Link_collision_0",
+          "r_wheel_Link_collision_0"
+        ],
+        "wheel_collision_geom_types": [
+          "mesh",
+          "mesh"
+        ],
+        "wheel_collision_mesh_count": 2,
+        "wheel_collision_cylinder_count": 0,
+        "wheel_collision_mode_detected": "mesh",
+        "wheel_collision_mesh_asset_names": [
+          "visual_Left_wheel_link",
+          "visual_Right_wheel_link"
+        ],
+        "wheel_collision_mesh_asset_sources": [
+          "visual_stl",
+          "visual_stl"
+        ],
+        "wheel_collision_mesh_asset_source_detected": "visual_stl"
+      },
+      "collision_representation": {
+        "wheel_collision_mode_detected": "mesh",
+        "wheel_collision_geom_names": [
+          "l_wheel_Link_collision_0",
+          "r_wheel_Link_collision_0"
+        ],
+        "wheel_collision_geom_types": [
+          "mesh",
+          "mesh"
+        ],
+        "wheel_collision_mesh_count": 2,
+        "wheel_collision_cylinder_count": 0,
+        "wheel_collision_mesh_asset_names": [
+          "visual_Left_wheel_link",
+          "visual_Right_wheel_link"
+        ],
+        "wheel_collision_mesh_asset_sources": [
+          "visual_stl",
+          "visual_stl"
+        ],
+        "wheel_collision_mesh_asset_source_detected": "visual_stl"
+      },
+      "preflight_step": {
+        "reward": -0.6061000046455789,
+        "done": false,
+        "termination_reason": "running"
+      }
+    },
+    "label": "latest_Feb26_13-20-50_model_2000"
+  },
+  "aggregate": {
+    "num_episodes": 10,
+    "mean_steps": 600.8,
+    "std_steps": 1199.6,
+    "mean_reward": -5.671172149837444,
+    "std_reward": 11.627971154532709,
+    "mean_upright_ratio": 0.1828,
+    "mean_tilt": 73.05534760405604,
+    "mean_max_tilt": 82.94257604650582,
+    "mean_angvel": 2.5288007736465934,
+    "mean_base_height": 0.2665671873101716,
+    "std_base_height": 0.06736708197072323,
+    "survival_time_seconds": 6.008,
+    "fall_rate": 0.8,
+    "mean_prompt_torque_trigger_ratio": 0.8021833333333334,
+    "mean_torque_saturation_rate": 0.6941499999999999,
+    "mean_action_clip_rate": 0.0,
+    "failure_modes": {
+      "fall_tilt": 8,
+      "timeout": 2
+    },
+    "episode_params_summary": {
+      "contact.friction": {
+        "min": 0.2380508624318099,
+        "max": 1.8932227111899724,
+        "mean": 1.2651704436902529
+      },
+      "contact.restitution": {
+        "min": 0.017891420896975263,
+        "max": 0.8884898869115002,
+        "mean": 0.42216111088007724
+      },
+      "contact.restitution_dampratio_proxy": {
+        "min": 0.2561141583238997,
+        "max": 1.4749520107442347,
+        "mean": 0.9089744447678918
+      },
+      "base_model.base_mass_delta": {
+        "min": -1.7951323803190267,
+        "max": 2.3238914770038708,
+        "mean": 0.33769831020246327
+      },
+      "base_model.inertia_scale": {
+        "min": 0.8066110542114117,
+        "max": 1.172406926392462,
+        "mean": 0.900825989211846
+      },
+      "base_model.base_com_offset[0]": {
+        "min": -0.04594892888115654,
+        "max": 0.047553297842682044,
+        "mean": -0.0010892180050047773
+      },
+      "base_model.base_com_offset[1]": {
+        "min": -0.039252277161385275,
+        "max": 0.04127555772777218,
+        "mean": -0.0017993374554942509
+      },
+      "base_model.base_com_offset[2]": {
+        "min": -0.04325762795157304,
+        "max": 0.027754412388170543,
+        "mean": -0.00942647157969859
+      },
+      "controller.p_gains_scale[0]": {
+        "min": 0.9147125810661264,
+        "max": 1.0682634559224766,
+        "mean": 0.9929293735919023
+      },
+      "controller.p_gains_scale[1]": {
+        "min": 0.9133380017534203,
+        "max": 1.0989834696321836,
+        "mean": 1.006052021500325
+      },
+      "controller.p_gains_scale[2]": {
+        "min": 0.908123512374549,
+        "max": 1.0737708588694639,
+        "mean": 1.0067206501320587
+      },
+      "controller.p_gains_scale[3]": {
+        "min": 0.921099055914046,
+        "max": 1.0351534883894922,
+        "mean": 0.9820662878117596
+      },
+      "controller.p_gains_scale[4]": {
+        "min": 0.959942378107477,
+        "max": 1.0959377417019314,
+        "mean": 1.0486221616968263
+      },
+      "controller.p_gains_scale[5]": {
+        "min": 0.9325139449506636,
+        "max": 1.0947968809704711,
+        "mean": 1.002622501466868
+      },
+      "controller.d_gains_scale[0]": {
+        "min": 0.9056639342290926,
+        "max": 1.0704104664925551,
+        "mean": 1.000477156458006
+      },
+      "controller.d_gains_scale[1]": {
+        "min": 0.9048026401342699,
+        "max": 1.0916827263555904,
+        "mean": 1.0015049810178147
+      },
+      "controller.d_gains_scale[2]": {
+        "min": 0.9326736182273913,
+        "max": 1.0851429154428838,
+        "mean": 1.0146641606557283
+      },
+      "controller.d_gains_scale[3]": {
+        "min": 0.9451738856834649,
+        "max": 1.0766837467267125,
+        "mean": 1.0066348768242475
+      },
+      "controller.d_gains_scale[4]": {
+        "min": 0.9249109411670567,
+        "max": 1.072757248219417,
+        "mean": 1.0289364073651108
+      },
+      "controller.d_gains_scale[5]": {
+        "min": 0.9390965025953193,
+        "max": 1.0990193010470648,
+        "mean": 1.0090166384590256
+      },
+      "controller.theta_kp_scale[0]": {
+        "min": 0.9185490951046762,
+        "max": 1.0994419871578422,
+        "mean": 1.0140445190378409
+      },
+      "controller.theta_kp_scale[1]": {
+        "min": 0.976567601779571,
+        "max": 1.0961670677552462,
+        "mean": 1.0276155312104238
+      },
+      "controller.theta_kd_scale[0]": {
+        "min": 0.9024293052227226,
+        "max": 1.0619421551825556,
+        "mean": 1.0107185582298437
+      },
+      "controller.theta_kd_scale[1]": {
+        "min": 0.9187690306866613,
+        "max": 1.0971539270392838,
+        "mean": 1.0246061096295391
+      },
+      "controller.l0_kp_scale[0]": {
+        "min": 0.9576842428862421,
+        "max": 1.0645614266189178,
+        "mean": 1.004721332134863
+      },
+      "controller.l0_kp_scale[1]": {
+        "min": 0.9147482026795613,
+        "max": 1.097739066673564,
+        "mean": 1.014087257523903
+      },
+      "controller.l0_kd_scale[0]": {
+        "min": 0.9162647382613914,
+        "max": 1.0636241941941822,
+        "mean": 0.9857509086306575
+      },
+      "controller.l0_kd_scale[1]": {
+        "min": 0.9147432865249076,
+        "max": 1.0926038280248536,
+        "mean": 1.0048826905685555
+      },
+      "controller.torques_scale[0]": {
+        "min": 0.9388259545781588,
+        "max": 1.0918155285394886,
+        "mean": 1.0187989607877714
+      },
+      "controller.torques_scale[1]": {
+        "min": 0.9523728031707875,
+        "max": 1.0864119373226757,
+        "mean": 1.0056478798278454
+      },
+      "controller.torques_scale[2]": {
+        "min": 0.9024202831344386,
+        "max": 1.0627068128359272,
+        "mean": 0.9779858801631429
+      },
+      "controller.torques_scale[3]": {
+        "min": 0.9177871280492544,
+        "max": 1.098404645716289,
+        "mean": 1.032394777516598
+      },
+      "controller.torques_scale[4]": {
+        "min": 0.9189553356722334,
+        "max": 1.0963885386253414,
+        "mean": 1.0361565848533334
+      },
+      "controller.torques_scale[5]": {
+        "min": 0.9009798829977151,
+        "max": 1.0943262508570537,
+        "mean": 1.009440273836931
+      },
+      "controller.default_dof_pos_offset[0]": {
+        "min": -0.047163463488647896,
+        "max": 0.04764623219360446,
+        "mean": -0.005049961816932123
+      },
+      "controller.default_dof_pos_offset[1]": {
+        "min": -0.026768852471446905,
+        "max": 0.03735226311207322,
+        "mean": 0.009187070754461964
+      },
+      "controller.default_dof_pos_offset[2]": {
+        "min": -0.049969930989307715,
+        "max": 0.04350724237877683,
+        "mean": -0.00901475264575674
+      },
+      "controller.default_dof_pos_offset[3]": {
+        "min": -0.04092469543808781,
+        "max": 0.04126219336408857,
+        "mean": 0.010999047385609369
+      },
+      "controller.default_dof_pos_offset[4]": {
+        "min": -0.04972614998298519,
+        "max": 0.03631202041893178,
+        "mean": 0.0042612045279660435
+      },
+      "controller.default_dof_pos_offset[5]": {
+        "min": -0.04171914241035053,
+        "max": 0.042910422079700625,
+        "mean": 0.0027052978030279854
+      },
+      "controller.action_delay_idx": {
+        "min": 0.0,
+        "max": 1.0,
+        "mean": 0.7
+      }
+    }
+  },
+  "episodes": [
+    {
+      "episode": 0,
+      "steps": 1,
+      "reward": -0.5948937400728753,
+      "mean_height": 0.2959501012936672,
+      "std_height": 0.0,
+      "upright_ratio": 0.0,
+      "max_tilt": 66.10221389497468,
+      "mean_tilt": 66.10221389497468,
+      "mean_angvel": 1.3845013711045162,
+      "survival_time_seconds": 0.01,
+      "termination_reason": "fall_tilt",
+      "fall": true,
+      "prompt_torque_steps": 2,
+      "prompt_torque_trigger_ratio": 1.0,
+      "torque_saturation_steps": 2,
+      "torque_saturation_rate": 1.0,
+      "action_clip_steps": 0,
+      "action_clip_rate": 0.0,
+      "episode_params": {
+        "mode": "train_ranges",
+        "randomized": true,
+        "contact": {
+          "friction": 1.3102272059107631,
+          "restitution": 0.2697867137638703,
+          "restitution_dampratio_proxy": 1.1222986007305815
+        },
+        "base_model": {
+          "base_mass_delta": -1.7951323803190267,
+          "inertia_scale": 0.8066110542114117,
+          "base_com_offset": [
+            0.031327023920027244,
+            0.04127555772777218,
+            0.010663577576717986
+          ]
+        },
+        "controller": {
+          "p_gains_scale": [
+            1.0459310892859888,
+            0.9351311241205118,
+            1.0726357844699774,
+            1.0082922440498183,
+            0.959942378107477,
+            0.9845374442395317
+          ],
+          "d_gains_scale": [
+            0.9056639342290926,
+            0.9248566552999128,
+            1.0341248829387262,
+            1.02943790231485,
+            1.0230770222962509,
+            0.9767355108523768
+          ],
+          "theta_kp_scale": [
+            1.0994419871578422,
+            1.0961670677552462
+          ],
+          "theta_kd_scale": [
+            1.037108396896139,
+            1.0300918552535634
+          ],
+          "l0_kp_scale": [
+            1.037689346114188,
+            0.9777842847958208
+          ],
+          "l0_kd_scale": [
+            0.9270193010044823,
+            1.0442976680388165
+          ],
+          "torques_scale": [
+            1.0050708644951452,
+            0.9620483751117912,
+            0.9971670717663579,
+            1.0778975668698,
+            1.0868087031912501,
+            0.9715590393418141
+          ],
+          "default_dof_pos_offset": [
+            0.022949656098399843,
+            0.004362499146542284,
+            0.04350724237877683,
+            0.031585355412153224,
+            -0.04972614998298519,
+            0.03574042765875694
+          ],
+          "action_delay_idx": 0
+        },
+        "restitution_application": "geom_solref_dampratio_proxy"
+      },
+      "controller_debug_summary": {
+        "mode": "vmc_balance_exact",
+        "action_delay_idx": 0,
+        "prompt_torque_step_count": 2,
+        "torque_saturation_count": 2,
+        "action_clip_count": 0,
+        "final_pitch_angle": 1.0187244024108846,
+        "contacts": {
+          "base_contact": true,
+          "left_wheel_contact": false,
+          "right_wheel_contact": false
+        },
+        "last_ctrl": [
+          30.0,
+          -30.0,
+          2.0,
+          30.0,
+          -30.0,
+          2.0
+        ],
+        "theta0_ref": [
+          -7.7583102607727055,
+          -2.9587595570087433
+        ],
+        "l0_ref": [
+          0.3030827832221985,
+          0.2983820271492005
+        ],
+        "wheel_vel_ref": [
+          -4.866015613079071,
+          -0.2346964180469513
+        ],
+        "theta0": [
+          0.14804494626370193,
+          0.16153509221187695
+        ],
+        "L0": [
+          0.2319295138916984,
+          0.23747376527893072
+        ],
+        "torque_leg": [
+          -116.37685355790514,
+          -52.093022640078765
+        ],
+        "force_leg": [
+          51.458607669560735,
+          42.1145135485746
+        ],
+        "torque_wheel": [
+          12.116302567437529,
+          2.9583897223654354
+        ],
+        "prompt_torque_triggered": true
+      }
+    },
+    {
+      "episode": 1,
+      "steps": 3000,
+      "reward": -39.8239761834736,
+      "mean_height": 0.14163710454411357,
+      "std_height": 0.038110027663050605,
+      "upright_ratio": 0.841,
+      "max_tilt": 54.88706582403628,
+      "mean_tilt": 7.516024031630931,
+      "mean_angvel": 0.34599387216896427,
+      "survival_time_seconds": 30.0,
+      "termination_reason": "timeout",
+      "fall": false,
+      "prompt_torque_steps": 58,
+      "prompt_torque_trigger_ratio": 0.009666666666666667,
+      "torque_saturation_steps": 5821,
+      "torque_saturation_rate": 0.9701666666666666,
+      "action_clip_steps": 0,
+      "action_clip_rate": 0.0,
+      "episode_params": {
+        "mode": "train_ranges",
+        "randomized": true,
+        "contact": {
+          "friction": 1.7653200385403371,
+          "restitution": 0.05856803480519435,
+          "restitution_dampratio_proxy": 1.4180047512727278
+        },
+        "base_model": {
+          "base_mass_delta": -0.31941469727169824,
+          "inertia_scale": 0.8601117867579356,
+          "base_com_offset": [
+            -0.004966063335071304,
+            0.029632427028729424,
+            -0.026935779100625258
+          ]
+        },
+        "controller": {
+          "p_gains_scale": [
+            0.9399030887936427,
+            1.0884226221012996,
+            0.9730220336489658,
+            0.921099055914046,
+            1.025821630307942,
+            1.0854309106135736
+          ],
+          "d_gains_scale": [
+            0.9880754309431569,
+            1.0909180987381475,
+            0.9999791627375294,
+            0.9850457249698151,
+            1.0240426904030757,
+            1.0990193010470648
+          ],
+          "theta_kp_scale": [
+            1.0897887349875532,
+            0.9920090278618192
+          ],
+          "theta_kd_scale": [
+            1.0515457690616583,
+            0.9994845390975239
+          ],
+          "l0_kp_scale": [
+            1.005862432039354,
+            1.0571571401427615
+          ],
+          "l0_kd_scale": [
+            0.9829311698711343,
+            1.046896714357746
+          ],
+          "torques_scale": [
+            1.0422285755979501,
+            1.0864119373226757,
+            0.9229865266561811,
+            1.045803023415262,
+            1.0854847857249121,
+            1.0935852379849293
+          ],
+          "default_dof_pos_offset": [
+            -0.04479786989355904,
+            -0.00954481601784718,
+            -0.03014869554907447,
+            -0.04092469543808781,
+            0.008033238598685065,
+            -0.02013038671810774
+          ],
+          "action_delay_idx": 1
+        },
+        "restitution_application": "geom_solref_dampratio_proxy"
+      },
+      "controller_debug_summary": {
+        "mode": "vmc_balance_exact",
+        "action_delay_idx": 1,
+        "prompt_torque_step_count": 58,
+        "torque_saturation_count": 5821,
+        "action_clip_count": 0,
+        "final_pitch_angle": 0.07099465282162976,
+        "contacts": {
+          "base_contact": true,
+          "left_wheel_contact": true,
+          "right_wheel_contact": true
+        },
+        "last_ctrl": [
+          11.360079734673025,
+          22.504585261495404,
+          1.8290377830711717,
+          6.776732205646798,
+          23.118519087074148,
+          -1.0957928141234026
+        ],
+        "theta0_ref": [
+          0.12380982533097268,
+          0.2277161306142807
+        ],
+        "l0_ref": [
+          0.028198559284210195,
+          0.004544992446899404
+        ],
+        "wheel_vel_ref": [
+          4.997273087501526,
+          -2.664991617202759
+        ],
+        "theta0": [
+          1.1603398975634496,
+          0.865742574394762
+        ],
+        "L0": [
+          0.18376286821192445,
+          0.17793927629958967
+        ],
+        "torque_leg": [
+          -10.899796839820375,
+          -6.479931740411436
+        ],
+        "force_leg": [
+          -125.18066934314568,
+          -146.6461985152639
+        ],
+        "torque_wheel": [
+          1.9816516603957979,
+          -1.0020186594165637
+        ],
+        "prompt_torque_triggered": false
+      }
+    },
+    {
+      "episode": 2,
+      "steps": 1,
+      "reward": -1.3979353958849148,
+      "mean_height": 0.29495705683023515,
+      "std_height": 0.0,
+      "upright_ratio": 0.0,
+      "max_tilt": 113.44917339751099,
+      "mean_tilt": 113.44917339751099,
+      "mean_angvel": 4.645076628768063,
+      "survival_time_seconds": 0.01,
+      "termination_reason": "fall_tilt",
+      "fall": true,
+      "prompt_torque_steps": 2,
+      "prompt_torque_trigger_ratio": 1.0,
+      "torque_saturation_steps": 2,
+      "torque_saturation_rate": 1.0,
+      "action_clip_steps": 0,
+      "action_clip_rate": 0.0,
+      "episode_params": {
+        "mode": "train_ranges",
+        "randomized": true,
+        "contact": {
+          "friction": 0.6056475173553558,
+          "restitution": 0.5389344076221869,
+          "restitution_dampratio_proxy": 0.7454918293289383
+        },
+        "base_model": {
+          "base_mass_delta": 0.21376414487265727,
+          "inertia_scale": 1.172406926392462,
+          "base_com_offset": [
+            -0.04594892888115654,
+            0.023200619565656083,
+            0.011437324694899664
+          ]
+        },
+        "controller": {
+          "p_gains_scale": [
+            1.0682634559224766,
+            0.9133380017534203,
+            0.9688619957608251,
+            0.9860597463895667,
+            1.0932124161568142,
+            1.0124463684456915
+          ],
+          "d_gains_scale": [
+            0.9517729186341864,
+            0.948335142818869,
+            1.077623664131836,
+            0.9451738856834649,
+            0.9249109411670567,
+            0.9576661514015156
+          ],
+          "theta_kp_scale": [
+            1.0172246129625466,
+            1.0108181004346537
+          ],
+          "theta_kd_scale": [
+            1.0619421551825556,
+            1.0120951904012372
+          ],
+          "l0_kp_scale": [
+            0.9576842428862421,
+            0.9825792685361786
+          ],
+          "l0_kd_scale": [
+            1.0636241941941822,
+            1.0253012924839509
+          ],
+          "torques_scale": [
+            1.0918155285394886,
+            0.9738808822183362,
+            1.0105223021042575,
+            1.0187848403226338,
+            1.069658241655012,
+            0.9290947076373064
+          ],
+          "default_dof_pos_offset": [
+            -0.047163463488647896,
+            0.021921977282674032,
+            -0.04840082704764281,
+            0.025795100235642812,
+            0.001275872326207808,
+            0.042910422079700625
+          ],
+          "action_delay_idx": 0
+        },
+        "restitution_application": "geom_solref_dampratio_proxy"
+      },
+      "controller_debug_summary": {
+        "mode": "vmc_balance_exact",
+        "action_delay_idx": 0,
+        "prompt_torque_step_count": 2,
+        "torque_saturation_count": 2,
+        "action_clip_count": 0,
+        "final_pitch_angle": -2.046835617305789,
+        "contacts": {
+          "base_contact": true,
+          "left_wheel_contact": false,
+          "right_wheel_contact": false
+        },
+        "last_ctrl": [
+          30.0,
+          -30.0,
+          2.0,
+          30.0,
+          -30.0,
+          2.0
+        ],
+        "theta0_ref": [
+          -5.123166799545288,
+          -3.341646156311035
+        ],
+        "l0_ref": [
+          0.2449054878950119,
+          0.23057166755199432
+        ],
+        "wheel_vel_ref": [
+          -7.599661946296692,
+          0.5083806812763214
+        ],
+        "theta0": [
+          0.24734285385995275,
+          0.19908864633358841
+        ],
+        "L0": [
+          0.23601010654961582,
+          0.24038878322765908
+        ],
+        "torque_leg": [
+          -126.81967814355565,
+          -116.52547569760218
+        ],
+        "force_leg": [
+          -11.442533764818672,
+          -27.243518800878384
+        ],
+        "torque_wheel": [
+          15.743108582567363,
+          9.83804306745788
+        ],
+        "prompt_torque_triggered": true
+      }
+    },
+    {
+      "episode": 3,
+      "steps": 1,
+      "reward": -0.6372858200261566,
+      "mean_height": 0.3013725785683479,
+      "std_height": 0.0,
+      "upright_ratio": 0.0,
+      "max_tilt": 68.7330230347411,
+      "mean_tilt": 68.7330230347411,
+      "mean_angvel": 0.5341630494962111,
+      "survival_time_seconds": 0.01,
+      "termination_reason": "fall_tilt",
+      "fall": true,
+      "prompt_torque_steps": 2,
+      "prompt_torque_trigger_ratio": 1.0,
+      "torque_saturation_steps": 1,
+      "torque_saturation_rate": 0.5,
+      "action_clip_steps": 0,
+      "action_clip_rate": 0.0,
+      "episode_params": {
+        "mode": "train_ranges",
+        "randomized": true,
+        "contact": {
+          "friction": 1.8932227111899724,
+          "restitution": 0.12681710226124776,
+          "restitution_dampratio_proxy": 1.3224560568342532
+        },
+        "base_model": {
+          "base_mass_delta": 2.3238914770038708,
+          "inertia_scale": 0.8237856606401355,
+          "base_com_offset": [
+            -0.011922949168911054,
+            -0.007022593882142339,
+            -0.0011150453166535734
+          ]
+        },
+        "controller": {
+          "p_gains_scale": [
+            0.968859146192465,
+            1.0989834696321836,
+            0.96318870907354,
+            0.9365424757853125,
+            1.076019624260814,
+            1.0624670796222508
+          ],
+          "d_gains_scale": [
+            1.0335778811142704,
+            1.0916827263555904,
+            1.0851429154428838,
+            1.049649700660351,
+            1.0721402819095356,
+            0.9494293480644216
+          ],
+          "theta_kp_scale": [
+            0.9282493113802064,
+            1.0340123698629873
+          ],
+          "theta_kd_scale": [
+            1.0429237073309505,
+            0.9334105857564545
+          ],
+          "l0_kp_scale": [
+            0.9791114546209753,
+            1.082051153243211
+          ],
+          "l0_kd_scale": [
+            1.0122801535100447,
+            1.0156671829852546
+          ],
+          "torques_scale": [
+            0.9388259545781588,
+            1.005204449723575,
+            1.004686945478984,
+            0.9177871280492544,
+            1.0963885386253414,
+            1.014279120091155
+          ],
+          "default_dof_pos_offset": [
+            0.04764623219360446,
+            0.02756911881018284,
+            -0.0191142637280739,
+            -0.023016321449919986,
+            0.03631202041893178,
+            0.03813071727376899
+          ],
+          "action_delay_idx": 1
+        },
+        "restitution_application": "geom_solref_dampratio_proxy"
+      },
+      "controller_debug_summary": {
+        "mode": "vmc_balance_exact",
+        "action_delay_idx": 1,
+        "prompt_torque_step_count": 2,
+        "torque_saturation_count": 1,
+        "action_clip_count": 0,
+        "final_pitch_angle": -0.5600650564061344,
+        "contacts": {
+          "base_contact": true,
+          "left_wheel_contact": false,
+          "right_wheel_contact": false
+        },
+        "last_ctrl": [
+          30.0,
+          -30.0,
+          -1.5142679943687691,
+          30.0,
+          -30.0,
+          1.350477071610691
+        ],
+        "theta0_ref": [
+          -7.41163341999054,
+          -3.8103342986106874
+        ],
+        "l0_ref": [
+          0.2701167774200439,
+          0.2512426716089249
+        ],
+        "wheel_vel_ref": [
+          -12.146433591842651,
+          -4.279425144195557
+        ],
+        "theta0": [
+          0.10987136190224644,
+          0.16785969295012662
+        ],
+        "L0": [
+          0.22862098370252176,
+          0.22607930915651994
+        ],
+        "torque_leg": [
+          -100.38574938166661,
+          -61.79762203701699
+        ],
+        "force_leg": [
+          24.15652253994476,
+          15.194414653767137
+        ],
+        "torque_wheel": [
+          -1.5072038122749198,
+          1.3314649240628373
+        ],
+        "prompt_torque_triggered": true
+      }
+    },
+    {
+      "episode": 4,
+      "steps": 1,
+      "reward": -1.4509123660215888,
+      "mean_height": 0.3012916095850839,
+      "std_height": 0.0,
+      "upright_ratio": 0.0,
+      "max_tilt": 116.80223548724962,
+      "mean_tilt": 116.80223548724962,
+      "mean_angvel": 4.57587258407752,
+      "survival_time_seconds": 0.01,
+      "termination_reason": "fall_tilt",
+      "fall": true,
+      "prompt_torque_steps": 2,
+      "prompt_torque_trigger_ratio": 1.0,
+      "torque_saturation_steps": 1,
+      "torque_saturation_rate": 0.5,
+      "action_clip_steps": 0,
+      "action_clip_rate": 0.0,
+      "episode_params": {
+        "mode": "train_ranges",
+        "randomized": true,
+        "contact": {
+          "friction": 1.0499483649513752,
+          "restitution": 0.7440974792826482,
+          "restitution_dampratio_proxy": 0.45826352900429246
+        },
+        "base_model": {
+          "base_mass_delta": -1.113866297626706,
+          "inertia_scale": 0.9552266927138077,
+          "base_com_offset": [
+            -0.04371045015450287,
+            0.02258808637757767,
+            -0.04122321132405132
+          ]
+        },
+        "controller": {
+          "p_gains_scale": [
+            0.9147125810661264,
+            0.9140652507138436,
+            1.0737708588694639,
+            1.0268139958694886,
+            0.9993143387597707,
+            0.9327086832392961
+          ],
+          "d_gains_scale": [
+            1.0347466875454547,
+            0.9636034775691596,
+            1.042175972653189,
+            0.992071065773465,
+            1.0014939721089056,
+            1.0579331464919741
+          ],
+          "theta_kp_scale": [
+            0.9185490951046762,
+            1.0157517006647006
+          ],
+          "theta_kd_scale": [
+            0.9394469894591737,
+            1.0616273503627136
+          ],
+          "l0_kp_scale": [
+            0.997769207225852,
+            1.097739066673564
+          ],
+          "l0_kd_scale": [
+            0.9365886649351438,
+            1.0926038280248536
+          ],
+          "torques_scale": [
+            1.060183407321722,
+            0.9962520993150538,
+            1.0627068128359272,
+            1.0205697810482233,
+            1.031024212798276,
+            1.0827381525414779
+          ],
+          "default_dof_pos_offset": [
+            -0.010490829164203241,
+            0.03735226311207322,
+            -0.002769966324998853,
+            0.04126219336408857,
+            0.026591711773887236,
+            0.04153239601117659
+          ],
+          "action_delay_idx": 0
+        },
+        "restitution_application": "geom_solref_dampratio_proxy"
+      },
+      "controller_debug_summary": {
+        "mode": "vmc_balance_exact",
+        "action_delay_idx": 0,
+        "prompt_torque_step_count": 2,
+        "torque_saturation_count": 1,
+        "action_clip_count": 0,
+        "final_pitch_angle": -2.0392470339486373,
+        "contacts": {
+          "base_contact": true,
+          "left_wheel_contact": false,
+          "right_wheel_contact": false
+        },
+        "last_ctrl": [
+          30.0,
+          -30.0,
+          2.0,
+          30.0,
+          -30.0,
+          2.0
+        ],
+        "theta0_ref": [
+          0.9791441851854324,
+          1.2450595700740814
+        ],
+        "l0_ref": [
+          0.1997669142484665,
+          0.18846331059932708
+        ],
+        "wheel_vel_ref": [
+          -1.2798616290092468,
+          1.60781130194664
+        ],
+        "theta0": [
+          0.219373186270041,
+          0.17822130996648824
+        ],
+        "L0": [
+          0.23670446132894193,
+          0.23841590018243278
+        ],
+        "torque_leg": [
+          -73.7738235884855,
+          -84.55509866237497
+        ],
+        "force_leg": [
+          -49.217429878931924,
+          -67.10500441786164
+        ],
+        "torque_wheel": [
+          14.48401107355794,
+          8.336712426126143
+        ],
+        "prompt_torque_triggered": true
+      }
+    },
+    {
+      "episode": 5,
+      "steps": 1,
+      "reward": -0.7841142990713605,
+      "mean_height": 0.3044213098116959,
+      "std_height": 0.0,
+      "upright_ratio": 0.0,
+      "max_tilt": 77.5325053912258,
+      "mean_tilt": 77.5325053912258,
+      "mean_angvel": 2.3535373823148045,
+      "survival_time_seconds": 0.01,
+      "termination_reason": "fall_tilt",
+      "fall": true,
+      "prompt_torque_steps": 2,
+      "prompt_torque_trigger_ratio": 1.0,
+      "torque_saturation_steps": 1,
+      "torque_saturation_rate": 0.5,
+      "action_clip_steps": 0,
+      "action_clip_rate": 0.0,
+      "episode_params": {
+        "mode": "train_ranges",
+        "randomized": true,
+        "contact": {
+          "friction": 1.618473121460618,
+          "restitution": 0.3222867247398318,
+          "restitution_dampratio_proxy": 1.0487985853642354
+        },
+        "base_model": {
+          "base_mass_delta": 1.983195913730273,
+          "inertia_scale": 0.8901313767502661,
+          "base_com_offset": [
+            -0.013769204951543094,
+            -0.008255188779562016,
+            0.004140998363016457
+          ]
+        },
+        "controller": {
+          "p_gains_scale": [
+            1.0642206176789277,
+            1.096365664574359,
+            1.0687581124737453,
+            0.9848212970888026,
+            1.0959377417019314,
+            1.0947968809704711
+          ],
+          "d_gains_scale": [
+            1.000735395840116,
+            1.0506893077167812,
+            1.0827675335346327,
+            0.9952294143937507,
+            1.072757248219417,
+            1.0403137132123745
+          ],
+          "theta_kp_scale": [
+            0.9587848511949115,
+            1.0535304539966948
+          ],
+          "theta_kd_scale": [
+            1.0141369571718999,
+            0.9187690306866613
+          ],
+          "l0_kp_scale": [
+            0.9782760852609329,
+            0.9147482026795613
+          ],
+          "l0_kd_scale": [
+            0.9952333926433992,
+            0.9857079216285848
+          ],
+          "torques_scale": [
+            0.9847474885940896,
+            1.017260070718157,
+            0.9245381320352147,
+            1.0867537819913686,
+            1.0368100896150068,
+            1.0647562716785544
+          ],
+          "default_dof_pos_offset": [
+            -0.03873863344594428,
+            -0.009305219936069385,
+            -0.049969930989307715,
+            0.024438072634739905,
+            0.0351875912234257,
+            -0.036106832087980247
+          ],
+          "action_delay_idx": 1
+        },
+        "restitution_application": "geom_solref_dampratio_proxy"
+      },
+      "controller_debug_summary": {
+        "mode": "vmc_balance_exact",
+        "action_delay_idx": 1,
+        "prompt_torque_step_count": 2,
+        "torque_saturation_count": 1,
+        "action_clip_count": 0,
+        "final_pitch_angle": -1.3299531502731685,
+        "contacts": {
+          "base_contact": true,
+          "left_wheel_contact": false,
+          "right_wheel_contact": false
+        },
+        "last_ctrl": [
+          -0.2832939079152222,
+          -30.0,
+          2.0,
+          -19.20809865780893,
+          -30.0,
+          2.0
+        ],
+        "theta0_ref": [
+          3.5946433877944948,
+          3.473398313522339
+        ],
+        "l0_ref": [
+          0.18054013073444367,
+          0.1643517208099365
+        ],
+        "wheel_vel_ref": [
+          6.877737641334534,
+          4.7468918561935425
+        ],
+        "theta0": [
+          0.2213824933576576,
+          0.11816770436858189
+        ],
+        "L0": [
+          0.23390845053956746,
+          0.22519109126183912
+        ],
+        "torque_leg": [
+          0.28768177750793456,
+          17.674747469120366
+        ],
+        "force_leg": [
+          -49.974518386029764,
+          -49.484220723168335
+        ],
+        "torque_wheel": [
+          8.015512550182162,
+          5.012605166992188
+        ],
+        "prompt_torque_triggered": true
+      }
+    },
+    {
+      "episode": 6,
+      "steps": 1,
+      "reward": -0.9033853984349747,
+      "mean_height": 0.30206713097059606,
+      "std_height": 0.0,
+      "upright_ratio": 0.0,
+      "max_tilt": 84.45574280062289,
+      "mean_tilt": 84.45574280062289,
+      "mean_angvel": 2.1533443246696073,
+      "survival_time_seconds": 0.01,
+      "termination_reason": "fall_tilt",
+      "fall": true,
+      "prompt_torque_steps": 2,
+      "prompt_torque_trigger_ratio": 1.0,
+      "torque_saturation_steps": 1,
+      "torque_saturation_rate": 0.5,
+      "action_clip_steps": 0,
+      "action_clip_rate": 0.0,
+      "episode_params": {
+        "mode": "train_ranges",
+        "randomized": true,
+        "contact": {
+          "friction": 1.5307949807447851,
+          "restitution": 0.43922893185830647,
+          "restitution_dampratio_proxy": 0.8850794953983709
+        },
+        "base_model": {
+          "base_mass_delta": 0.9419005471460742,
+          "inertia_scale": 0.8509433887686685,
+          "base_com_offset": [
+            0.022612351093398028,
+            -0.021991759813350054,
+            -0.03093824395959818
+          ]
+        },
+        "controller": {
+          "p_gains_scale": [
+            0.9350819499970162,
+            1.0349597299934559,
+            0.9725643901725872,
+            0.9659791664987872,
+            1.0887355530458376,
+            0.9398596681358973
+          ],
+          "d_gains_scale": [
+            1.002434731567547,
+            0.9048026401342699,
+            0.9326736182273913,
+            1.0766837467267125,
+            1.0578495096505354,
+            1.011367098010798
+          ],
+          "theta_kp_scale": [
+            0.9444906791982721,
+            1.0115495165242614
+          ],
+          "theta_kd_scale": [
+            0.9024293052227226,
+            1.0425987261875842
+          ],
+          "l0_kp_scale": [
+            1.0433501361127457,
+            1.029209004713271
+          ],
+          "l0_kd_scale": [
+            1.0222677368550404,
+            0.9147432865249076
+          ],
+          "torques_scale": [
+            0.9492811938101952,
+            1.0148756096195863,
+            0.9788373532057796,
+            1.098404645716289,
+            1.0847490714750363,
+            0.9304015805045074
+          ],
+          "default_dof_pos_offset": [
+            0.03629499985831945,
+            0.00644128211205941,
+            -0.0015501057653749678,
+            0.039882376524848454,
+            -0.04139875639389974,
+            0.01961544503408927
+          ],
+          "action_delay_idx": 1
+        },
+        "restitution_application": "geom_solref_dampratio_proxy"
+      },
+      "controller_debug_summary": {
+        "mode": "vmc_balance_exact",
+        "action_delay_idx": 1,
+        "prompt_torque_step_count": 2,
+        "torque_saturation_count": 1,
+        "action_clip_count": 0,
+        "final_pitch_angle": 1.1248255450394693,
+        "contacts": {
+          "base_contact": true,
+          "left_wheel_contact": false,
+          "right_wheel_contact": false
+        },
+        "last_ctrl": [
+          -12.426404842346562,
+          -30.0,
+          2.0,
+          -23.30491891326305,
+          -30.0,
+          2.0
+        ],
+        "theta0_ref": [
+          4.774339880943298,
+          4.7476959848403935
+        ],
+        "l0_ref": [
+          0.15280084133148192,
+          0.10572927713394165
+        ],
+        "wheel_vel_ref": [
+          6.60278856754303,
+          6.0087281465530396
+        ],
+        "theta0": [
+          0.13904855227794558,
+          0.15501098758456153
+        ],
+        "L0": [
+          0.2321153218813592,
+          0.23698510216418261
+        ],
+        "torque_leg": [
+          13.090330792786329,
+          21.217061493822715
+        ],
+        "force_leg": [
+          -75.27118574321821,
+          -113.77368097182023
+        ],
+        "torque_wheel": [
+          8.076804665193889,
+          6.294804518326345
+        ],
+        "prompt_torque_triggered": true
+      }
+    },
+    {
+      "episode": 7,
+      "steps": 1,
+      "reward": -0.7933574776260922,
+      "mean_height": 0.305855313570132,
+      "std_height": 0.0,
+      "upright_ratio": 0.0,
+      "max_tilt": 78.07433233054662,
+      "mean_tilt": 78.07433233054662,
+      "mean_angvel": 2.854046156703389,
+      "survival_time_seconds": 0.01,
+      "termination_reason": "fall_tilt",
+      "fall": true,
+      "prompt_torque_steps": 2,
+      "prompt_torque_trigger_ratio": 1.0,
+      "torque_saturation_steps": 1,
+      "torque_saturation_rate": 0.5,
+      "action_clip_steps": 0,
+      "action_clip_rate": 0.0,
+      "episode_params": {
+        "mode": "train_ranges",
+        "randomized": true,
+        "contact": {
+          "friction": 0.2380508624318099,
+          "restitution": 0.017891420896975263,
+          "restitution_dampratio_proxy": 1.4749520107442347
+        },
+        "base_model": {
+          "base_mass_delta": 0.8998509028204738,
+          "inertia_scale": 0.87644410938403,
+          "base_com_offset": [
+            0.047553297842682044,
+            -0.039252277161385275,
+            -0.004791121167289157
+          ]
+        },
+        "controller": {
+          "p_gains_scale": [
+            1.0039666148668465,
+            0.9853442287460483,
+            0.908123512374549,
+            0.9388054909801586,
+            1.0890049296609254,
+            0.9325139449506636
+          ],
+          "d_gains_scale": [
+            1.0704104664925551,
+            1.0644274318128881,
+            0.9782587514156217,
+            0.9933567039688528,
+            1.064800361529984,
+            1.0361372651140426
+          ],
+          "theta_kp_scale": [
+            1.0673887472858143,
+            1.0515193171664248
+          ],
+          "theta_kd_scale": [
+            1.038254295888121,
+            1.0825948212013756
+          ],
+          "l0_kp_scale": [
+            1.0645614266189178,
+            0.9358125375165987
+          ],
+          "l0_kd_scale": [
+            1.0496448550162492,
+            0.9173362646229086
+          ],
+          "torques_scale": [
+            0.9851712480588044,
+            0.9793503774306851,
+            0.940433618795097,
+            1.087581021727198,
+            0.9189553356722334,
+            0.9009798829977151
+          ],
+          "default_dof_pos_offset": [
+            -0.010534020292903998,
+            -0.026768852471446905,
+            0.024875572500393503,
+            0.01437047620803103,
+            0.022575768505186986,
+            -0.04171914241035053
+          ],
+          "action_delay_idx": 1
+        },
+        "restitution_application": "geom_solref_dampratio_proxy"
+      },
+      "controller_debug_summary": {
+        "mode": "vmc_balance_exact",
+        "action_delay_idx": 1,
+        "prompt_torque_step_count": 2,
+        "torque_saturation_count": 1,
+        "action_clip_count": 0,
+        "final_pitch_angle": 1.098020454795781,
+        "contacts": {
+          "base_contact": true,
+          "left_wheel_contact": false,
+          "right_wheel_contact": false
+        },
+        "last_ctrl": [
+          30.0,
+          -30.0,
+          2.0,
+          30.0,
+          -30.0,
+          2.0
+        ],
+        "theta0_ref": [
+          -9.222164392471313,
+          -4.685336616039276
+        ],
+        "l0_ref": [
+          0.3384738636016846,
+          0.3289560031890869
+        ],
+        "wheel_vel_ref": [
+          -7.142871618270874,
+          -0.5366195738315582
+        ],
+        "theta0": [
+          0.23585324813061823,
+          0.1778879958150161
+        ],
+        "L0": [
+          0.2417236501796426,
+          0.23608668879286698
+        ],
+        "torque_leg": [
+          -166.56832459095568,
+          -116.57730840806664
+        ],
+        "force_leg": [
+          66.1407777639352,
+          53.569971008617614
+        ],
+        "torque_wheel": [
+          5.194836568471173,
+          8.524951248819299
+        ],
+        "prompt_torque_triggered": true
+      }
+    },
+    {
+      "episode": 8,
+      "steps": 3000,
+      "reward": -8.876320303495437,
+      "mean_height": 0.12292551492956362,
+      "std_height": 0.013211126631131831,
+      "upright_ratio": 0.987,
+      "max_tilt": 52.675260659136306,
+      "mean_tilt": 1.1740180270439255,
+      "mean_angvel": 0.08754542015711388,
+      "survival_time_seconds": 30.0,
+      "termination_reason": "timeout",
+      "fall": false,
+      "prompt_torque_steps": 73,
+      "prompt_torque_trigger_ratio": 0.012166666666666666,
+      "torque_saturation_steps": 5828,
+      "torque_saturation_rate": 0.9713333333333334,
+      "action_clip_steps": 0,
+      "action_clip_rate": 0.0,
+      "episode_params": {
+        "mode": "train_ranges",
+        "randomized": true,
+        "contact": {
+          "friction": 1.5786716295936636,
+          "restitution": 0.8884898869115002,
+          "restitution_dampratio_proxy": 0.2561141583238997
+        },
+        "base_model": {
+          "base_mass_delta": 1.1574575863080834,
+          "inertia_scale": 0.9425458185506286,
+          "base_com_offset": [
+            0.002828244005699296,
+            -0.027349960431763645,
+            0.027754412388170543
+          ]
+        },
+        "controller": {
+          "p_gains_scale": [
+            0.9827911764930386,
+            1.0228402871335909,
+            1.0387969086292992,
+            1.0170959171521243,
+            1.0465772153717432,
+            1.0040050514409296
+          ],
+          "d_gains_scale": [
+            0.9925735618258544,
+            0.957353773089707,
+            0.9458303339993414,
+            1.0390604212183638,
+            1.0391422705624915,
+            0.9390965025953193
+          ],
+          "theta_kp_scale": [
+            1.0943674833222226,
+            1.0342301560578793
+          ],
+          "theta_kd_scale": [
+            1.0062432246419653,
+            1.0682350703089936
+          ],
+          "l0_kp_scale": [
+            0.9973040866606311,
+            0.9951889740200655
+          ],
+          "l0_kd_scale": [
+            0.9516548800155075,
+            0.9312270962781385
+          ],
+          "torques_scale": [
+            1.0423241157761836,
+            1.0688221936478086,
+            1.0355597556191918,
+            0.9737643033391901,
+            1.0151444182438105,
+            1.012682494734798
+          ],
+          "default_dof_pos_offset": [
+            -0.032992149838513354,
+            0.007719794898659073,
+            0.003589892957911435,
+            0.017190280347769052,
+            0.026048659866525006,
+            -0.039017211393609114
+          ],
+          "action_delay_idx": 1
+        },
+        "restitution_application": "geom_solref_dampratio_proxy"
+      },
+      "controller_debug_summary": {
+        "mode": "vmc_balance_exact",
+        "action_delay_idx": 1,
+        "prompt_torque_step_count": 73,
+        "torque_saturation_count": 5828,
+        "action_clip_count": 0,
+        "final_pitch_angle": -0.006863422796360559,
+        "contacts": {
+          "base_contact": true,
+          "left_wheel_contact": false,
+          "right_wheel_contact": true
+        },
+        "last_ctrl": [
+          18.217137366429146,
+          30.0,
+          0.18859289892950656,
+          7.639309479626352,
+          23.19305778621417,
+          -2.0
+        ],
+        "theta0_ref": [
+          -0.3526257465779781,
+          0.4899677458405495
+        ],
+        "l0_ref": [
+          0.017908020019531234,
+          -0.013692312240600607
+        ],
+        "wheel_vel_ref": [
+          -1.7638525366783142,
+          -6.356483101844788
+        ],
+        "theta0": [
+          1.1753296467170629,
+          1.357566998924847
+        ],
+        "L0": [
+          0.2230443404693585,
+          0.17383258408875646
+        ],
+        "torque_leg": [
+          -17.477420977507997,
+          -7.845131982585485
+        ],
+        "force_leg": [
+          -163.6433575517949,
+          -149.3604481841037
+        ],
+        "torque_wheel": [
+          0.1821168676227103,
+          -2.8761041073200033
+        ],
+        "prompt_torque_triggered": false
+      }
+    },
+    {
+      "episode": 9,
+      "steps": 1,
+      "reward": -1.4495405142674325,
+      "mean_height": 0.2951941529982808,
+      "std_height": 0.0,
+      "upright_ratio": 0.0,
+      "max_tilt": 116.7142076450138,
+      "mean_tilt": 116.7142076450138,
+      "mean_angvel": 6.353926947005745,
+      "survival_time_seconds": 0.01,
+      "termination_reason": "fall_tilt",
+      "fall": true,
+      "prompt_torque_steps": 2,
+      "prompt_torque_trigger_ratio": 1.0,
+      "torque_saturation_steps": 1,
+      "torque_saturation_rate": 0.5,
+      "action_clip_steps": 0,
+      "action_clip_rate": 0.0,
+      "episode_params": {
+        "mode": "train_ranges",
+        "randomized": true,
+        "contact": {
+          "friction": 1.0613480047238488,
+          "restitution": 0.8155104066590114,
+          "restitution_dampratio_proxy": 0.35828543067738416
+        },
+        "base_model": {
+          "base_mass_delta": -0.9146640946393689,
+          "inertia_scale": 0.8300530779491135,
+          "base_com_offset": [
+            0.005104499579330471,
+            -0.030818285186474538,
+            -0.04325762795157304
+          ]
+        },
+        "controller": {
+          "p_gains_scale": [
+            1.0055640156224954,
+            0.9710698362345394,
+            1.0274841958476364,
+            1.0351534883894922,
+            1.011655789595007,
+            0.9774589830103748
+          ],
+          "d_gains_scale": [
+            1.024780556387827,
+            1.0183805566428221,
+            0.9680647714761333,
+            0.9606402025328491,
+            1.0091497758038575,
+            1.0224683478003702
+          ],
+          "theta_kp_scale": [
+            1.0221596877843617,
+            0.976567601779571
+          ],
+          "theta_kd_scale": [
+            1.013154781443251,
+            1.0971539270392838
+          ],
+          "l0_kp_scale": [
+            0.9856049038087904,
+            1.0686029429179982
+          ],
+          "l0_kd_scale": [
+            0.9162647382613914,
+            1.0750456507403945
+          ],
+          "torques_scale": [
+            1.0883412311059772,
+            0.9523728031707875,
+            0.9024202831344386,
+            0.9966016826867599,
+            0.9365424515324556,
+            1.0943262508570537
+          ],
+          "default_dof_pos_offset": [
+            0.027326459804126832,
+            0.032122660607792244,
+            -0.010166444890176464,
+            -0.02059236398317156,
+            -0.022287911056304222,
+            -0.013902857417164918
+          ],
+          "action_delay_idx": 1
+        },
+        "restitution_application": "geom_solref_dampratio_proxy"
+      },
+      "controller_debug_summary": {
+        "mode": "vmc_balance_exact",
+        "action_delay_idx": 1,
+        "prompt_torque_step_count": 2,
+        "torque_saturation_count": 1,
+        "action_clip_count": 0,
+        "final_pitch_angle": 3.0074883790974836,
+        "contacts": {
+          "base_contact": true,
+          "left_wheel_contact": false,
+          "right_wheel_contact": false
+        },
+        "last_ctrl": [
+          30.0,
+          -30.0,
+          2.0,
+          30.0,
+          -30.0,
+          2.0
+        ],
+        "theta0_ref": [
+          3.984497714042664,
+          4.211534552574158
+        ],
+        "l0_ref": [
+          0.13962498426437378,
+          0.08371219158172608
+        ],
+        "wheel_vel_ref": [
+          5.031750798225403,
+          4.98515248298645
+        ],
+        "theta0": [
+          0.22170745854226018,
+          0.29568602217969747
+        ],
+        "L0": [
+          0.24437528571025946,
+          0.24920797886964352
+        ],
+        "torque_leg": [
+          -85.06413490070412,
+          -87.77515995381307
+        ],
+        "force_leg": [
+          -110.1579779405162,
+          -169.63629140383375
+        ],
+        "torque_wheel": [
+          19.456564331473594,
+          18.027044769417444
+        ],
+        "prompt_torque_triggered": true
+      }
+    }
+  ]
+}

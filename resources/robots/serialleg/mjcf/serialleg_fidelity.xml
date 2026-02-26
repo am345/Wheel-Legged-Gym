@@ -23,10 +23,32 @@
     <mesh name="collision_Right_wheel_link_1" file="Right_wheel_link_1.obj" />
     <mesh name="collision_base_link_0" file="base_link_0.obj" />
     <mesh name="collision_base_link_1" file="base_link_1.obj" />
+    <mesh name="collision_base_link_10" file="base_link_10.obj" />
+    <mesh name="collision_base_link_11" file="base_link_11.obj" />
     <mesh name="collision_base_link_2" file="base_link_2.obj" />
     <mesh name="collision_base_link_3" file="base_link_3.obj" />
     <mesh name="collision_base_link_4" file="base_link_4.obj" />
     <mesh name="collision_base_link_5" file="base_link_5.obj" />
+    <mesh name="collision_base_link_6" file="base_link_6.obj" />
+    <mesh name="collision_base_link_7" file="base_link_7.obj" />
+    <mesh name="collision_base_link_8" file="base_link_8.obj" />
+    <mesh name="collision_base_link_9" file="base_link_9.obj" />
+    <mesh name="generated_base_link_part000" file="_mjc_generated_collision/base_link_part000.stl" />
+    <mesh name="generated_base_link_part001" file="_mjc_generated_collision/base_link_part001.stl" />
+    <mesh name="generated_base_link_part002" file="_mjc_generated_collision/base_link_part002.stl" />
+    <mesh name="generated_base_link_part003" file="_mjc_generated_collision/base_link_part003.stl" />
+    <mesh name="generated_base_link_part004" file="_mjc_generated_collision/base_link_part004.stl" />
+    <mesh name="generated_base_link_part005" file="_mjc_generated_collision/base_link_part005.stl" />
+    <mesh name="generated_base_link_part006" file="_mjc_generated_collision/base_link_part006.stl" />
+    <mesh name="generated_base_link_part007" file="_mjc_generated_collision/base_link_part007.stl" />
+    <mesh name="generated_base_link_part008" file="_mjc_generated_collision/base_link_part008.stl" />
+    <mesh name="generated_base_link_part009" file="_mjc_generated_collision/base_link_part009.stl" />
+    <mesh name="visual_Left_calf_link" file="Left_calf_link.STL" />
+    <mesh name="visual_Left_thigh_link" file="Left_thigh_link.STL" />
+    <mesh name="visual_Left_wheel_link" file="Left_wheel_link.STL" />
+    <mesh name="visual_Right_calf_link" file="Right_calf_link.STL" />
+    <mesh name="visual_Right_thigh_link" file="Right_thigh_link.STL" />
+    <mesh name="visual_Right_wheel_link" file="Right_wheel_link.STL" />
   </asset>
   <worldbody>
     <geom name="floor" type="plane" size="0 0 .05" material="grid" friction="0.5 0.005 0.0001" />
@@ -34,50 +56,45 @@
     <body name="base_link" pos="0 0 0.30">
       <freejoint />
       <inertial pos="-0.02538499 -0.02771589 -0.01835494" mass="11.8831501" diaginertia="0.156599492 0.164271003 0.258843496" quat="0.999480137 -0.0111941766 0.0280884995 0.0111884812" />
-      <geom type="mesh" mesh="collision_base_link_0" pos="0 0 0" name="base_link_collision_0" contype="1" conaffinity="1" group="0" />
-      <geom type="mesh" mesh="collision_base_link_1" pos="0 0 0" name="base_link_collision_1" contype="1" conaffinity="1" group="0" />
-      <geom type="mesh" mesh="collision_base_link_2" pos="0 0 0" name="base_link_collision_2" contype="1" conaffinity="1" group="0" />
-      <geom type="mesh" mesh="collision_base_link_3" pos="0 0 0" name="base_link_collision_3" contype="1" conaffinity="1" group="0" />
-      <geom type="mesh" mesh="collision_base_link_4" pos="0 0 0" name="base_link_collision_4" contype="1" conaffinity="1" group="0" />
-      <geom type="mesh" mesh="collision_base_link_5" pos="0 0 0" name="base_link_collision_5" contype="1" conaffinity="1" group="0" />
+      <geom type="mesh" mesh="generated_base_link_part000" pos="0 0 0" name="base_link_collision_0" contype="1" conaffinity="1" group="0" />
+      <geom type="mesh" mesh="generated_base_link_part001" pos="0 0 0" name="base_link_collision_1" contype="1" conaffinity="1" group="0" />
+      <geom type="mesh" mesh="generated_base_link_part002" pos="0 0 0" name="base_link_collision_2" contype="1" conaffinity="1" group="0" />
+      <geom type="mesh" mesh="generated_base_link_part003" pos="0 0 0" name="base_link_collision_3" contype="1" conaffinity="1" group="0" />
+      <geom type="mesh" mesh="generated_base_link_part004" pos="0 0 0" name="base_link_collision_4" contype="1" conaffinity="1" group="0" />
+      <geom type="mesh" mesh="generated_base_link_part005" pos="0 0 0" name="base_link_collision_5" contype="1" conaffinity="1" group="0" />
+      <geom type="mesh" mesh="generated_base_link_part006" pos="0 0 0" name="base_link_collision_6" contype="1" conaffinity="1" group="0" />
+      <geom type="mesh" mesh="generated_base_link_part007" pos="0 0 0" name="base_link_collision_7" contype="1" conaffinity="1" group="0" />
+      <geom type="mesh" mesh="generated_base_link_part008" pos="0 0 0" name="base_link_collision_8" contype="1" conaffinity="1" group="0" />
+      <geom type="mesh" mesh="generated_base_link_part009" pos="0 0 0" name="base_link_collision_9" contype="1" conaffinity="1" group="0" />
       <body name="lf0_Link" pos="0 0.14231 0.020745">
         <joint name="lf0_Joint" type="hinge" axis="0 -1 0" damping="0" />
-        <inertial pos="-0.09118886 0.00425839 0.00300097" mass="0.30144487" diaginertia="0.000123920704 0.0014472351 0.00152427419" quat="0.697427231 0.715244868 0.00656897369 -0.0444621782" />
-        <geom type="mesh" mesh="collision_Left_thigh_link_0" pos="0 0 0" name="lf0_Link_collision_0" contype="1" conaffinity="1" group="0" />
-        <geom type="mesh" mesh="collision_Left_thigh_link_1" pos="0 0 0" name="lf0_Link_collision_1" contype="1" conaffinity="1" group="0" />
-        <geom type="mesh" mesh="collision_Left_thigh_link_2" pos="0 0 0" name="lf0_Link_collision_2" contype="1" conaffinity="1" group="0" />
-        <geom type="mesh" mesh="collision_Left_thigh_link_3" pos="0 0 0" name="lf0_Link_collision_3" contype="1" conaffinity="1" group="0" />
-        <geom type="mesh" mesh="collision_Left_thigh_link_4" pos="0 0 0" name="lf0_Link_collision_4" contype="1" conaffinity="1" group="0" />
+        <inertial pos="-0.091189 0.0042584 0.003001" mass="0.30144" diaginertia="0.000123920704 0.0014472351 0.00152427419" quat="0.697427231 0.715244868 0.00656897369 -0.0444621782" />
+        <geom type="mesh" mesh="visual_Left_thigh_link" pos="0 0 0" name="lf0_Link_collision_0" contype="1" conaffinity="1" group="0" />
         <body name="lf1_Link" pos="-0.16689 0.01655 0.0059238">
           <joint name="lf1_Joint" type="hinge" axis="0 -1 0" range="-0.6 0.8" damping="0" />
-          <inertial pos="0.00421675 0.00119112 -0.06734189" mass="0.34590115" diaginertia="0.00012382357 0.00228076275 0.00237137368" quat="0.501233309 -0.49938575 -0.500024843 -0.499353781" />
-          <geom type="mesh" mesh="collision_Left_calf_link_0" pos="0 0 0" name="lf1_Link_collision_0" contype="1" conaffinity="1" group="0" />
+          <inertial pos="0.0042171 0.0011806 -0.06717" mass="0.34590115" diaginertia="0.000123187766 0.00228101941 0.00237175283" quat="0.513054704 -0.492926176 -0.500982815 -0.492762493" />
+          <geom type="mesh" mesh="visual_Left_calf_link" pos="0 0 0" name="lf1_Link_collision_0" contype="1" conaffinity="1" group="0" />
           <body name="l_wheel_Link" pos="0.0081627 0.0295 -0.19983">
             <joint name="l_wheel_Joint" type="hinge" axis="0 1 0" damping="0" />
-            <inertial pos="-1.04e-05 -0.00660229 -0.00011589" mass="0.27783378" diaginertia="0.00026477996 0.000265409564 0.000480800475" quat="-0.706575744 0.707626291 -0.00280498405 -0.0028073859" />
-            <geom type="mesh" mesh="collision_Left_wheel_link_0" pos="0 0 0" name="l_wheel_Link_visual_proxy" contype="0" conaffinity="0" group="1" />
-            <geom name="l_wheel_collision" type="cylinder" size="0.0675 0.025" quat="0.70710678 -0.70710678 0 0" friction="0.8 0.005 0.0001" group="0" contype="1" conaffinity="1" rgba="0.1 0.1 0.1 1" />
+            <inertial pos="-1.0398e-05 -0.0066023 -0.00011589" mass="0.27783" diaginertia="0.000264776056 0.000265413466 0.000480800477" quat="-0.706032761 0.707085078 -0.0278125864 -0.0278369062" />
+            <geom type="mesh" mesh="visual_Left_wheel_link" pos="0 0 0" name="l_wheel_Link_visual_proxy" contype="0" conaffinity="0" group="1" />
+            <geom type="mesh" mesh="visual_Left_wheel_link" pos="0 0 0" name="l_wheel_Link_collision_0" contype="1" conaffinity="1" group="0" friction="0.8 0.005 0.0001" />
           </body>
         </body>
       </body>
       <body name="rf0_Link" pos="0 -0.19539 0.020745">
         <joint name="rf0_Joint" type="hinge" axis="0 -1 0" damping="0" />
-        <inertial pos="-0.09118909 -0.00201834 0.00300098" mass="0.30144247" diaginertia="0.000122019287 0.00144184873 0.00152071198" quat="-0.705995067 0.707227907 -0.0199296921 -0.0316616437" />
-        <geom type="mesh" mesh="collision_Right_thigh_link_0" pos="0 0 0" name="rf0_Link_collision_0" contype="1" conaffinity="1" group="0" />
-        <geom type="mesh" mesh="collision_Right_thigh_link_1" pos="0 0 0" name="rf0_Link_collision_1" contype="1" conaffinity="1" group="0" />
-        <geom type="mesh" mesh="collision_Right_thigh_link_2" pos="0 0 0" name="rf0_Link_collision_2" contype="1" conaffinity="1" group="0" />
-        <geom type="mesh" mesh="collision_Right_thigh_link_3" pos="0 0 0" name="rf0_Link_collision_3" contype="1" conaffinity="1" group="0" />
-        <geom type="mesh" mesh="collision_Right_thigh_link_4" pos="0 0 0" name="rf0_Link_collision_4" contype="1" conaffinity="1" group="0" />
-        <geom type="mesh" mesh="collision_Right_thigh_link_5" pos="0 0 0" name="rf0_Link_collision_5" contype="1" conaffinity="1" group="0" />
+        <inertial pos="-0.10463 -0.0030141 0.0035992" mass="0.30144247" diaginertia="0.000122019287 0.00144184873 0.00152071198" quat="-0.705995067 0.707227907 -0.0199296921 -0.0316616437" />
+        <geom type="mesh" mesh="visual_Right_thigh_link" pos="0 0 0" name="rf0_Link_collision_0" contype="1" conaffinity="1" group="0" />
         <body name="rf1_Link" pos="-0.16677 -0.014325 0.0086821">
           <joint name="rf1_Joint" type="hinge" axis="0 -1 0" range="-0.6 0.8" damping="0" />
-          <inertial pos="0.00450783 -0.00367971 -0.07169925" mass="0.33427995" diaginertia="0.000117163911 0.00222348039 0.0023117157" quat="-0.498668871 0.501904333 0.498703415 0.50071579" />
-          <geom type="mesh" mesh="collision_Right_calf_link_0" pos="0 0 0" name="rf1_Link_collision_0" contype="1" conaffinity="1" group="0" />
+          <inertial pos="0.0043749 -0.0027358 -0.055672" mass="0.29927995" diaginertia="0.000114100131 0.0021746313 0.00226152857" quat="-0.497644876 -0.496529673 -0.497883377 0.507858252" />
+          <geom type="mesh" mesh="visual_Right_calf_link" pos="0 0 0" name="rf1_Link_collision_0" contype="1" conaffinity="1" group="0" />
           <body name="r_wheel_Link" pos="0.0080419 -0.031725 -0.20259">
             <joint name="r_wheel_Joint" type="hinge" axis="0 1 0" damping="0" />
-            <inertial pos="1.981e-05 0.00660229 -0.00011465" mass="0.27783378" diaginertia="0.000264789836 0.000265399718 0.000480800446" quat="0.706573984 0.707591738 -0.00578984477 0.0057979203" />
-            <geom type="mesh" mesh="collision_Right_wheel_link_0" pos="0 0 0" name="r_wheel_Link_visual_proxy" contype="0" conaffinity="0" group="1" />
-            <geom name="r_wheel_collision" type="cylinder" size="0.0675 0.025" quat="0.70710678 -0.70710678 0 0" friction="0.8 0.005 0.0001" group="0" contype="1" conaffinity="1" rgba="0.1 0.1 0.1 1" />
+            <inertial pos="1.9815e-05 0.0066023 -0.00011465" mass="0.27783" diaginertia="0.000264774025 0.000265415517 0.000480800458" quat="0.704375964 0.70540349 -0.0559066985 0.0559898035" />
+            <geom type="mesh" mesh="visual_Right_wheel_link" pos="0 0 0" name="r_wheel_Link_visual_proxy" contype="0" conaffinity="0" group="1" />
+            <geom type="mesh" mesh="visual_Right_wheel_link" pos="0 0 0" name="r_wheel_Link_collision_0" contype="1" conaffinity="1" group="0" friction="0.8 0.005 0.0001" />
           </body>
         </body>
       </body>

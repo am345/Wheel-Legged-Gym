@@ -10,10 +10,11 @@
 - `MuJoCoBalanceEnv` 支持：
   - `simplified_joint_pd`（旧基线）
   - `vmc_balance_exact`（训练一致 VMC 控制链路，保留 balance pitch 提示扭矩）
-- `serialleg_fidelity.xml` 高保真 MJCF（由 URDF 生成，轮子碰撞使用解析圆柱）
+- `serialleg_fidelity.xml` 高保真 MJCF（由 URDF 生成，默认使用未简化的 STL mesh 作为碰撞体）
 - MuJoCo 侧 episode 级 domain randomization（对齐训练范围）
 - 主验证脚本支持 checkpoint sweep、随机化评估、结构化 JSON 输出
 - Isaac 参考轨迹采集与 MuJoCo 对齐回放脚本
+- MuJoCo 交互演示脚本（手动动作注入 / 策略按键启动，见 `mujoco_sim/SIM2SIM_RUNBOOK.md`）
 
 ## 文件结构
 
@@ -34,7 +35,11 @@ resources/robots/serialleg/mjcf/
 └── README_fidelity.md            # fidelity模型说明
 
 tools/
-└── build_serialleg_fidelity_mjcf.py   # URDF -> fidelity MJCF 生成工具
+├── build_serialleg_fidelity_mjcf.py   # URDF -> fidelity MJCF 生成工具
+├── view_mjcf_model.py                 # 纯模型查看（无策略）
+├── check_mujoco_vmc_sanity.py         # 控制链路 sanity（无策略）
+├── play_mujoco_manual_balance.py      # MuJoCo 手动动作注入交互
+└── play_mujoco_policy_balance.py      # MuJoCo 策略交互（按 C 启动网络）
 
 wheel_legged_gym/scripts/
 ├── verify_sim2sim_mujoco.py           # 主验证脚本（长时评估 + 可选对齐）
@@ -50,6 +55,20 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate gym_env
 pip install mujoco scipy
 ```
+
+## 交互演示（MuJoCo）
+
+常见两类交互脚本：
+
+1. 手动动作注入（调 VMC 响应/方向/接触）
+- `tools/play_mujoco_manual_balance.py`
+
+2. 类 `play_balance` 的策略交互（随机 reset 后按 `C` 启动策略恢复姿态）
+- `tools/play_mujoco_policy_balance.py`
+
+详细操作、键位和示例命令见：
+
+- `mujoco_sim/SIM2SIM_RUNBOOK.md`
 
 ## 1. 真实 Sim2Sim 长时评估（推荐）
 
@@ -190,5 +209,7 @@ python wheel_legged_gym/scripts/verify_sim2sim_mujoco.py \
 2. 因此建议同时看：
    - 工程对齐指标（短序列 RMSE）
    - 长时 rollout 鲁棒性指标（随机化分布下）
-3. `serialleg_fidelity.xml` 对轮子碰撞使用了解析圆柱（有意设计，用于稳定滚动接触）。
+3. `serialleg_fidelity.xml` 默认使用未简化的 STL mesh 碰撞（更接近完整几何），但这可能降低数值稳定性或增加仿真开销。
+   超大 STL（如 `base_link.STL`）会在生成时被无损分块，以满足 MuJoCo 单 mesh 面数限制。
 4. `collect_isaac_reference_rollout.py` 中必须先导入 `isaacgym` 再导入 `torch`（脚本已处理）。
+5. `serialleg_fidelity.xml` 默认使用未简化 STL 作为碰撞体；如需对比简化版本，可重新生成时使用 `--collision-mesh-source urdf_collision` 或 `--wheel-collision-mode cylinder`。

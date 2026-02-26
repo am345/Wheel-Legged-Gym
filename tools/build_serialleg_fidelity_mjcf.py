@@ -6,8 +6,9 @@ This script is intentionally robot-specific (serialleg) but keeps the parsing/ge
 pipeline explicit so the generated MJCF is reproducible and auditable.
 
 Key decisions:
-- Preserve URDF topology, joints, inertials, visuals, collision meshes for base/thigh/calf
-- Replace wheel collision meshes with analytical cylinders for more stable rolling contact
+- Preserve URDF topology, joints, inertials, visuals, and collision meshes
+- Default to unsimplified STL meshes (URDF visual meshes) as collision meshes
+- Optionally allow URDF collision OBJ meshes or wheel cylinder fallback for comparison
 - Use motor actuators (direct torque control), not MJCF-embedded PD servos
 - Keep control order aligned with training/MuJoCo sim2sim env expectations
 """
@@ -31,6 +32,9 @@ from scipy.spatial.transform import Rotation
 WHEEL_COLLISION_RADIUS = 0.0675
 WHEEL_COLLISION_HALF_WIDTH = 0.025
 WHEEL_CYLINDER_QUAT_WXYZ = (0.70710678, -0.70710678, 0.0, 0.0)  # rotate z-axis to y-axis
+WHEEL_COLLISION_FRICTION = "0.8 0.005 0.0001"
+MUJOCO_MAX_STL_FACES = 200000
+GENERATED_COLLISION_SUBDIR = "_mjc_generated_collision"
 
 EXPECTED_ACTUATOR_ORDER = [
     "lf0_Joint",
@@ -244,6 +248,13 @@ def mesh_basename(filename: str) -> str:
     return Path(filename.replace("\\", "/")).name
 
 
+def mesh_file_attr_path(filename: str, kind: str) -> str:
+    """Path written into MJCF <mesh file=...>. Keep subpaths for generated assets."""
+    if kind == "generated":
+        return filename.replace("\\", "/")
+    return mesh_basename(filename)
+
+
 def is_wheel_link(name: str) -> bool:
     return name in {"l_wheel_Link", "r_wheel_Link"}
 
@@ -253,7 +264,12 @@ def is_visual_only_geom_for_link(link_name: str) -> bool:
     return False
 
 
-def build_asset_mesh_tables(links: Dict[str, LinkData]) -> Dict[Tuple[str, str], str]:
+def build_asset_mesh_tables(
+    links: Dict[str, LinkData],
+    include_visuals: bool = False,
+    extra_mesh_files: Optional[Dict[Tuple[str, int], str]] = None,
+    skip_visual_files: Optional[set] = None,
+) -> Dict[Tuple[str, str], str]:
     """Map (filename, visual|collision) -> unique asset name."""
     used: Dict[Tuple[str, str], str] = {}
     seen_names = set()
@@ -272,10 +288,129 @@ def build_asset_mesh_tables(links: Dict[str, LinkData]) -> Dict[Tuple[str, str],
         used[key] = name
         seen_names.add(name)
 
+    if extra_mesh_files is None:
+        extra_mesh_files = {}
+    if skip_visual_files is None:
+        skip_visual_files = set()
+
     for link in links.values():
+        if include_visuals:
+            for v in link.visuals:
+                if v.filename in skip_visual_files:
+                    continue
+                add(v.filename, "visual")
         for c in link.collisions:
             add(c.filename, "collision")
+    for key in sorted(extra_mesh_files.keys()):
+        add(extra_mesh_files[key], "generated")
     return used
+
+
+def _is_binary_stl(stl_path: Path) -> Tuple[bool, int]:
+    size = stl_path.stat().st_size
+    if size < 84:
+        return False, 0
+    with open(stl_path, "rb") as f:
+        hdr = f.read(84)
+    tri_count = int(np.frombuffer(hdr[80:84], dtype=np.uint32)[0])
+    expected_size = 84 + 50 * tri_count
+    return (expected_size == size), tri_count
+
+
+def split_binary_stl_for_mujoco(
+    src_stl: Path,
+    out_dir: Path,
+    file_prefix: str,
+    max_faces_per_chunk: int = MUJOCO_MAX_STL_FACES,
+) -> List[Path]:
+    """
+    Split a binary STL into multiple binary STL chunks without changing triangle data.
+    This preserves geometry exactly while satisfying MuJoCo's per-mesh face limit.
+    """
+    is_binary, tri_count = _is_binary_stl(src_stl)
+    if not is_binary:
+        raise ValueError(
+            f"STL is not recognized as binary or size is inconsistent: {src_stl}. "
+            "ASCII STL is currently not supported by this splitter."
+        )
+    if tri_count <= max_faces_per_chunk:
+        return []
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    outputs: List[Path] = []
+    with open(src_stl, "rb") as f:
+        header = f.read(80)
+        count_bytes = f.read(4)
+        if len(count_bytes) != 4:
+            raise IOError(f"Failed to read triangle count field from {src_stl}")
+        file_tri_count = int(np.frombuffer(count_bytes, dtype=np.uint32)[0])
+        if file_tri_count != tri_count:
+            raise ValueError(
+                f"Triangle count mismatch while splitting {src_stl}: "
+                f"header says {file_tri_count}, expected {tri_count}"
+            )
+        remaining = tri_count
+        chunk_idx = 0
+        while remaining > 0:
+            chunk_faces = min(max_faces_per_chunk, remaining)
+            chunk_bytes = f.read(50 * chunk_faces)
+            if len(chunk_bytes) != 50 * chunk_faces:
+                raise IOError(
+                    f"Unexpected EOF while splitting {src_stl}; "
+                    f"expected {50 * chunk_faces} bytes, got {len(chunk_bytes)}"
+                )
+            out_path = out_dir / f"{file_prefix}_part{chunk_idx:03d}.stl"
+            with open(out_path, "wb") as wf:
+                # Keep original header bytes as prefix, annotate chunk index in-place for readability
+                hdr = bytearray(header[:80])
+                label = f"mjc_chunk {chunk_idx}".encode("ascii", errors="ignore")
+                hdr[: len(label)] = label[:80]
+                wf.write(hdr)
+                wf.write(np.uint32(chunk_faces).tobytes())
+                wf.write(chunk_bytes)
+            outputs.append(out_path)
+            remaining -= chunk_faces
+            chunk_idx += 1
+    return outputs
+
+
+def prepare_visual_collision_mesh_overrides(
+    links: Dict[str, LinkData],
+    mesh_dir: Path,
+) -> Dict[str, List[str]]:
+    """
+    For visual STL collision mode, pre-split oversized binary STLs into generated chunk STLs
+    to satisfy MuJoCo's mesh face limit without simplifying geometry.
+
+    Returns:
+      map: link_name -> list of mesh filenames (relative to mesh_dir) to use as collision geoms
+            only present when a visual STL was split into multiple chunk files.
+    """
+    overrides: Dict[str, List[str]] = {}
+    generated_dir = mesh_dir / GENERATED_COLLISION_SUBDIR
+    for link_name, link in links.items():
+        if not link.visuals:
+            continue
+        # serialleg links use one visual STL per link; if multiple visuals exist, only split the first if needed.
+        v = link.visuals[0]
+        src = (mesh_dir / mesh_basename(v.filename)).resolve()
+        if src.suffix.lower() != ".stl" or not src.exists():
+            continue
+        is_binary, tri_count = _is_binary_stl(src)
+        if not is_binary:
+            continue
+        if tri_count <= MUJOCO_MAX_STL_FACES:
+            continue
+        safe_prefix = re.sub(r"[^a-zA-Z0-9_]+", "_", Path(src.name).stem)
+        chunk_paths = split_binary_stl_for_mujoco(
+            src_stl=src,
+            out_dir=generated_dir,
+            file_prefix=safe_prefix,
+            max_faces_per_chunk=MUJOCO_MAX_STL_FACES,
+        )
+        rels = [str(p.relative_to(mesh_dir).as_posix()) for p in chunk_paths]
+        overrides[link_name] = rels
+    return overrides
 
 
 def indent(elem: ET.Element, level: int = 0):
@@ -298,6 +433,7 @@ def add_geom_mesh(
     is_collision: bool,
     rgba: Optional[str] = None,
     geom_name: Optional[str] = None,
+    friction: Optional[str] = None,
 ):
     attrs = {
         "type": "mesh",
@@ -313,6 +449,8 @@ def add_geom_mesh(
         attrs["contype"] = "1"
         attrs["conaffinity"] = "1"
         attrs["group"] = "0"
+        if friction:
+            attrs["friction"] = friction
     else:
         attrs["contype"] = "0"
         attrs["conaffinity"] = "0"
@@ -332,7 +470,7 @@ def add_wheel_collision_cylinder(body_elem: ET.Element, side: str):
             "type": "cylinder",
             "size": fmt_floats([WHEEL_COLLISION_RADIUS, WHEEL_COLLISION_HALF_WIDTH]),
             "quat": fmt_floats(WHEEL_CYLINDER_QUAT_WXYZ),
-            "friction": "0.8 0.005 0.0001",
+            "friction": WHEEL_COLLISION_FRICTION,
             "group": "0",
             "contype": "1",
             "conaffinity": "1",
@@ -346,7 +484,19 @@ def build_mjcf_tree(
     joints: List[JointData],
     root_link: str,
     meshdir_rel: str,
+    wheel_collision_mode: str = "mesh",
+    collision_mesh_source: str = "visual_stl",
+    visual_collision_overrides: Optional[Dict[str, List[str]]] = None,
 ) -> ET.Element:
+    if wheel_collision_mode not in {"mesh", "cylinder"}:
+        raise ValueError(
+            f"Unsupported wheel_collision_mode={wheel_collision_mode}; expected 'mesh' or 'cylinder'"
+        )
+    if collision_mesh_source not in {"visual_stl", "urdf_collision"}:
+        raise ValueError(
+            "Unsupported collision_mesh_source="
+            f"{collision_mesh_source}; expected 'visual_stl' or 'urdf_collision'"
+        )
     joint_by_parent: Dict[str, List[JointData]] = {}
     for j in joints:
         joint_by_parent.setdefault(j.parent, []).append(j)
@@ -399,14 +549,29 @@ def build_mjcf_tree(
         },
     )
 
-    mesh_assets = build_asset_mesh_tables(links)
+    skip_visual_files = set()
+    if collision_mesh_source == "visual_stl":
+        for link_name in visual_collision_overrides.keys():
+            if links[link_name].visuals:
+                skip_visual_files.add(links[link_name].visuals[0].filename)
+
+    mesh_assets = build_asset_mesh_tables(
+        links,
+        include_visuals=(collision_mesh_source == "visual_stl"),
+        extra_mesh_files={
+            (link_name, i): rel
+            for link_name, rels in visual_collision_overrides.items()
+            for i, rel in enumerate(rels)
+        },
+        skip_visual_files=skip_visual_files,
+    )
     for (filename, kind), asset_name in sorted(mesh_assets.items(), key=lambda kv: kv[1]):
         ET.SubElement(
             asset_elem,
             "mesh",
             {
                 "name": asset_name,
-                "file": mesh_basename(filename),
+                "file": mesh_file_attr_path(filename, kind),
             },
         )
 
@@ -483,31 +648,68 @@ def build_mjcf_tree(
                 iattrs["quat"] = fmt_floats(iquat)
             ET.SubElement(body_elem, "inertial", iattrs)
 
+        # Collision source selection:
+        # - visual_stl: use URDF visual meshes as (typically unsimplified) collision meshes
+        # - urdf_collision: use URDF collision meshes (often simplified/split)
+        collision_entries = []
+        if collision_mesh_source == "visual_stl" and len(link.visuals) > 0:
+            if link_name in visual_collision_overrides:
+                # Split chunks preserve the first visual mesh origin.
+                v0 = link.visuals[0]
+                for rel_file in visual_collision_overrides[link_name]:
+                    collision_entries.append((rel_file, "generated", v0.origin))
+            else:
+                for v in link.visuals:
+                    collision_entries.append((v.filename, "visual", v.origin))
+        else:
+            for c in link.collisions:
+                collision_entries.append((c.filename, "collision", c.origin))
+
         # Collision geoms
         if is_wheel_link(link_name):
             side = "l" if link_name.startswith("l_") else "r"
-            # Keep a mesh visual for wheels using the first collision OBJ (STL visuals are skipped)
+            # Keep a wheel visual proxy. Prefer visual STL (if included), then fallback to collision OBJ.
+            proxy_candidates = []
+            if link.visuals:
+                proxy_candidates.append((link.visuals[0], "visual"))
             if link.collisions:
-                first_coll = link.collisions[0]
-                mesh_asset_name = mesh_assets.get((first_coll.filename, "collision"))
-                if mesh_asset_name is not None:
+                proxy_candidates.append((link.collisions[0], "collision"))
+            for proxy_geom, proxy_kind in proxy_candidates:
+                mesh_asset_name = mesh_assets.get((proxy_geom.filename, proxy_kind))
+                if mesh_asset_name is None:
+                    continue
+                add_geom_mesh(
+                    body_elem,
+                    mesh_asset_name=mesh_asset_name,
+                    origin=proxy_geom.origin,
+                    is_collision=False,
+                    geom_name=f"{link_name}_visual_proxy",
+                )
+                break
+            if wheel_collision_mode == "cylinder":
+                add_wheel_collision_cylinder(body_elem, side)
+            else:
+                for idx, (mesh_file, mesh_kind, mesh_origin) in enumerate(collision_entries):
+                    asset_name = mesh_assets.get((mesh_file, mesh_kind))
+                    if asset_name is None:
+                        continue
                     add_geom_mesh(
                         body_elem,
-                        mesh_asset_name=mesh_asset_name,
-                        origin=first_coll.origin,
-                        is_collision=False,
-                        geom_name=f"{link_name}_visual_proxy",
+                        mesh_asset_name=asset_name,
+                        origin=mesh_origin,
+                        is_collision=True,
+                        geom_name=f"{link_name}_collision_{idx}",
+                        friction=WHEEL_COLLISION_FRICTION,
                     )
-            add_wheel_collision_cylinder(body_elem, side)
         else:
-            for idx, coll in enumerate(link.collisions):
-                asset_name = mesh_assets.get((coll.filename, "collision"))
+            for idx, (mesh_file, mesh_kind, mesh_origin) in enumerate(collision_entries):
+                asset_name = mesh_assets.get((mesh_file, mesh_kind))
                 if asset_name is None:
                     continue
                 add_geom_mesh(
                     body_elem,
                     mesh_asset_name=asset_name,
-                    origin=coll.origin,
+                    origin=mesh_origin,
                     is_collision=True,
                     geom_name=f"{link_name}_collision_{idx}",
                 )
@@ -545,6 +747,8 @@ def generate_serialleg_fidelity_mjcf(
     output_path: Path,
     mesh_dir: Optional[Path] = None,
     validate_load: bool = False,
+    wheel_collision_mode: str = "mesh",
+    collision_mesh_source: str = "visual_stl",
 ) -> Path:
     links, joints, root_link = parse_urdf(urdf_path)
 
@@ -554,8 +758,21 @@ def generate_serialleg_fidelity_mjcf(
     output_dir = output_path.parent.resolve()
     # robust relative path that preserves '..' when output and meshdir are not nested
     meshdir_rel = Path(os.path.relpath(str(mesh_dir), str(output_dir))).as_posix()
+    visual_collision_overrides = (
+        prepare_visual_collision_mesh_overrides(links, mesh_dir)
+        if collision_mesh_source == "visual_stl"
+        else {}
+    )
 
-    mjcf = build_mjcf_tree(links, joints, root_link, meshdir_rel)
+    mjcf = build_mjcf_tree(
+        links,
+        joints,
+        root_link,
+        meshdir_rel,
+        wheel_collision_mode=wheel_collision_mode,
+        collision_mesh_source=collision_mesh_source,
+        visual_collision_overrides=visual_collision_overrides,
+    )
     indent(mjcf)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     ET.ElementTree(mjcf).write(output_path, encoding="utf-8", xml_declaration=False)
@@ -588,6 +805,20 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Mesh directory (defaults to URDF sibling ../meshes)",
     )
+    p.add_argument(
+        "--wheel-collision-mode",
+        type=str,
+        choices=["mesh", "cylinder"],
+        default="mesh",
+        help="Wheel collision geometry representation in generated MJCF",
+    )
+    p.add_argument(
+        "--collision-mesh-source",
+        type=str,
+        choices=["visual_stl", "urdf_collision"],
+        default="visual_stl",
+        help="Collision mesh source for link geoms (default uses unsimplified visual STL meshes)",
+    )
     p.add_argument("--validate-load", action="store_true", help="Load generated MJCF with MuJoCo")
     return p.parse_args()
 
@@ -602,6 +833,8 @@ def main() -> None:
         output_path=output_path,
         mesh_dir=mesh_dir,
         validate_load=args.validate_load,
+        wheel_collision_mode=args.wheel_collision_mode,
+        collision_mesh_source=args.collision_mesh_source,
     )
     print(f"Generated fidelity MJCF: {out}")
 

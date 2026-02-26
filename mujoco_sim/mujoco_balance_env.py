@@ -496,7 +496,65 @@ class MuJoCoBalanceEnv:
             "contacts": self.get_contact_flags(),
         }
 
+    @staticmethod
+    def _geom_type_name(geom_type_code: int) -> str:
+        mapping = {
+            int(mujoco.mjtGeom.mjGEOM_PLANE): "plane",
+            int(mujoco.mjtGeom.mjGEOM_HFIELD): "hfield",
+            int(mujoco.mjtGeom.mjGEOM_SPHERE): "sphere",
+            int(mujoco.mjtGeom.mjGEOM_CAPSULE): "capsule",
+            int(mujoco.mjtGeom.mjGEOM_ELLIPSOID): "ellipsoid",
+            int(mujoco.mjtGeom.mjGEOM_CYLINDER): "cylinder",
+            int(mujoco.mjtGeom.mjGEOM_BOX): "box",
+            int(mujoco.mjtGeom.mjGEOM_MESH): "mesh",
+        }
+        return mapping.get(int(geom_type_code), f"unknown_{int(geom_type_code)}")
+
     def get_model_diagnostics(self):
+        wheel_collision_geom_ids = [
+            gid
+            for gid in self.wheel_geom_ids
+            if int(self.model.geom_contype[gid]) != 0 or int(self.model.geom_conaffinity[gid]) != 0
+        ]
+        wheel_collision_geom_names = [self.geom_names[gid] for gid in wheel_collision_geom_ids]
+        wheel_collision_geom_types = [
+            self._geom_type_name(int(self.model.geom_type[gid])) for gid in wheel_collision_geom_ids
+        ]
+        wheel_collision_mesh_asset_names = []
+        wheel_collision_mesh_asset_sources = []
+        for gid, gtype in zip(wheel_collision_geom_ids, wheel_collision_geom_types):
+            if gtype != "mesh":
+                continue
+            mesh_id = int(self.model.geom_dataid[gid])
+            mesh_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_MESH, mesh_id) or f"mesh_{mesh_id}"
+            wheel_collision_mesh_asset_names.append(mesh_name)
+            if mesh_name.startswith("visual_"):
+                wheel_collision_mesh_asset_sources.append("visual_stl")
+            elif mesh_name.startswith("generated_"):
+                wheel_collision_mesh_asset_sources.append("visual_stl_chunked")
+            elif mesh_name.startswith("collision_"):
+                wheel_collision_mesh_asset_sources.append("urdf_collision")
+            else:
+                wheel_collision_mesh_asset_sources.append("unknown")
+        wheel_collision_mesh_count = int(sum(t == "mesh" for t in wheel_collision_geom_types))
+        wheel_collision_cylinder_count = int(sum(t == "cylinder" for t in wheel_collision_geom_types))
+        if wheel_collision_geom_ids:
+            if wheel_collision_mesh_count == len(wheel_collision_geom_ids):
+                wheel_collision_mode_detected = "mesh"
+            elif wheel_collision_cylinder_count == len(wheel_collision_geom_ids):
+                wheel_collision_mode_detected = "cylinder"
+            else:
+                wheel_collision_mode_detected = "mixed"
+        else:
+            wheel_collision_mode_detected = "none"
+        if wheel_collision_mesh_asset_sources:
+            uniq_sources = sorted(set(wheel_collision_mesh_asset_sources))
+            wheel_collision_mesh_asset_source_detected = (
+                uniq_sources[0] if len(uniq_sources) == 1 else "mixed"
+            )
+        else:
+            wheel_collision_mesh_asset_source_detected = "none"
+
         return {
             "joint_names": list(self.joint_names),
             "joint_ids": list(self.joint_ids),
@@ -515,6 +573,14 @@ class MuJoCoBalanceEnv:
             "domain_rand_mode": self.domain_rand_mode,
             "fidelity_level": self.fidelity_level,
             "domain_rand_config": self.domain_randomizer.config_dict(),
+            "wheel_collision_geom_names": wheel_collision_geom_names,
+            "wheel_collision_geom_types": wheel_collision_geom_types,
+            "wheel_collision_mesh_count": wheel_collision_mesh_count,
+            "wheel_collision_cylinder_count": wheel_collision_cylinder_count,
+            "wheel_collision_mode_detected": wheel_collision_mode_detected,
+            "wheel_collision_mesh_asset_names": wheel_collision_mesh_asset_names,
+            "wheel_collision_mesh_asset_sources": wheel_collision_mesh_asset_sources,
+            "wheel_collision_mesh_asset_source_detected": wheel_collision_mesh_asset_source_detected,
         }
 
     # ---------------------------------------------------------------------
@@ -712,4 +778,3 @@ class MuJoCoBalanceEnv:
         quat_scipy = np.array([quat[1], quat[2], quat[3], quat[0]], dtype=np.float64)
         rot = Rotation.from_quat(quat_scipy)
         return rot.inv().apply(vec)
-

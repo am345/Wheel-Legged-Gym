@@ -21,16 +21,24 @@ Generator script:
 
 ## Contact modeling choices (important)
 
-- Non-wheel collision geoms (`base/thigh/calf`) use collision meshes from URDF.
-- Wheel collision uses analytic `cylinder` geoms for stable rolling contact.
-- Wheel visual still uses mesh (collision and visual can differ by design).
+- Collision geoms use **unsimplified visual STL meshes by default** (`--collision-mesh-source visual_stl`).
+- This applies to all links, including wheels.
+- Oversized STL meshes are **automatically split into multiple binary STL chunks without simplification**
+  to satisfy MuJoCo's per-mesh face limit (e.g. `base_link.STL`).
+- Generator supports fallbacks for comparison/debug:
+  - `--collision-mesh-source urdf_collision` (use URDF collision OBJ meshes, often simplified/split)
+  - `--wheel-collision-mode cylinder` (wheel-only cylinder proxy; non-wheel links still follow `--collision-mesh-source`)
+- Wheel visual still uses mesh (visual proxy).
 
-This is intentional: wheel mesh collisions often degrade contact stability and rolling behavior in MuJoCo.
+Using visual STL meshes for collision is closer to the full geometry, but may reduce contact stability
+or increase simulation cost in MuJoCo compared with simplified collision meshes / cylinder fallback.
 
 ## Known preprocessing applied internally by generator
 
 - Fixes malformed URDF attribute: `velocity="49.1.0" -> "49.1"`
 - Normalizes mesh paths for MuJoCo resolution.
+- Generates chunked STL files under `resources/robots/serialleg/meshes/_mjc_generated_collision/`
+  when a visual STL exceeds MuJoCo's mesh face limit.
 
 ## Regenerate / validate
 
@@ -38,6 +46,10 @@ This is intentional: wheel mesh collisions often degrade contact stability and r
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate gym_env
 python tools/build_serialleg_fidelity_mjcf.py --validate-load
+
+# optional fallback for comparison (not default)
+python tools/build_serialleg_fidelity_mjcf.py --collision-mesh-source urdf_collision --validate-load
+python tools/build_serialleg_fidelity_mjcf.py --wheel-collision-mode cylinder --validate-load
 ```
 
 ## Notes on sim2sim interpretation
