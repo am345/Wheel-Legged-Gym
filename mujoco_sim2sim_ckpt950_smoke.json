@@ -1,0 +1,581 @@
+{
+  "metadata": {
+    "task": "wheel_legged_vmc_balance",
+    "checkpoint_path": "/home/am345/Wheel-Legged-Gym/logs/wheel_legged_vmc_balance/Feb26_13-20-50_/model_950.pt",
+    "model_path": "/home/am345/Wheel-Legged-Gym/resources/robots/serialleg/mjcf/serialleg_fidelity.xml",
+    "controller_mode": "vmc_balance_exact",
+    "controller_mode_requested": "vmc_balance_exact",
+    "fidelity_level": "fidelity",
+    "domain_rand_mode": "off",
+    "episodes_requested": 1,
+    "max_steps": 200,
+    "seed": 0,
+    "randomize_reset": false,
+    "device": "cpu",
+    "render": false,
+    "record_episode_params": true,
+    "eval_fall_tilt_deg": 60.0,
+    "timestamp": "2026-02-26T08:45:52.748817+00:00",
+    "approximate_validation": false,
+    "notes": [
+      "MuJoCo controller uses training-aligned VMC balance control path.",
+      "MJCF uses fidelity model generated from URDF (wheel collision mode detected: mesh).",
+      "PhysX and MuJoCo contact dynamics differ; use alignment metrics and rollout metrics jointly."
+    ],
+    "policy_checkpoint_iter": 0,
+    "policy_spec": {
+      "num_obs": 27,
+      "num_actions": 6,
+      "obs_history_length": 5,
+      "latent_dim": 3,
+      "encoder_hidden_dims": [
+        128,
+        64
+      ],
+      "actor_hidden_dims": [
+        128,
+        64,
+        32
+      ],
+      "critic_hidden_dims": [
+        256,
+        128,
+        64
+      ],
+      "activation": "elu",
+      "init_noise_std": 1.0,
+      "num_critic_obs": 158
+    },
+    "env_timing": {
+      "dt": 0.01,
+      "sim_dt": 0.005,
+      "decimation": 2
+    },
+    "config_snapshot": {
+      "control_cfg": {
+        "sim_dt": 0.005,
+        "control_decimation": 2,
+        "l1": 0.167,
+        "l2": 0.2,
+        "offset": 0.0,
+        "clip_actions": 100.0,
+        "clip_observations": 100.0,
+        "command": [
+          0.0,
+          0.0,
+          0.24
+        ],
+        "commands_scale": [
+          2.0,
+          0.25,
+          1.0
+        ],
+        "obs_scales_ang_vel": 0.25,
+        "obs_scales_dof_pos": 1.0,
+        "obs_scales_dof_vel": 0.05,
+        "obs_scales_l0": 5.0,
+        "obs_scales_l0_dot": 0.25,
+        "default_dof_pos": [
+          0.4,
+          0.25,
+          0.0,
+          0.4,
+          0.25,
+          0.0
+        ],
+        "torque_limits": [
+          30.0,
+          30.0,
+          2.0,
+          30.0,
+          30.0,
+          2.0
+        ],
+        "action_scale_theta": 3.14,
+        "action_scale_l0": 0.1,
+        "action_scale_vel": 5.0,
+        "l0_offset": 0.22,
+        "feedforward_force": 40.0,
+        "kp_theta": 10.0,
+        "kd_theta": 5.0,
+        "kp_l0": 800.0,
+        "kd_l0": 7.0,
+        "wheel_kd": 0.5,
+        "simple_pos_action_scale": 0.5,
+        "simple_vel_action_scale": 10.0,
+        "simple_p_gains": [
+          40.0,
+          40.0,
+          0.0,
+          40.0,
+          40.0,
+          0.0
+        ],
+        "simple_d_gains": [
+          1.0,
+          1.0,
+          0.5,
+          1.0,
+          1.0,
+          0.5
+        ],
+        "enable_balance_hint": true,
+        "balance_hint_pitch_threshold_rad": 0.349,
+        "balance_hint_knee_torque": -30.0,
+        "balance_hint_joint_indices": [
+          1,
+          4
+        ],
+        "vmc_velocity_fd_dt": 0.001,
+        "dof_vel_use_pos_diff": true,
+        "upright_tilt_threshold_deg": 10.0,
+        "balance_reset": {
+          "x_pos_offset": [
+            0.0,
+            0.0
+          ],
+          "y_pos_offset": [
+            0.0,
+            0.0
+          ],
+          "z_pos_offset": [
+            0.0,
+            0.0
+          ],
+          "roll": [
+            -3.14,
+            3.14
+          ],
+          "pitch": [
+            -3.14,
+            3.14
+          ],
+          "yaw": [
+            -3.14,
+            3.14
+          ],
+          "lin_vel_x": [
+            -0.5,
+            0.5
+          ],
+          "lin_vel_y": [
+            -0.5,
+            0.5
+          ],
+          "lin_vel_z": [
+            -0.5,
+            0.5
+          ],
+          "ang_vel_roll": [
+            -0.5,
+            0.5
+          ],
+          "ang_vel_pitch": [
+            -0.5,
+            0.5
+          ],
+          "ang_vel_yaw": [
+            -0.5,
+            0.5
+          ]
+        }
+      },
+      "domain_rand_cfg": {
+        "randomize_friction": true,
+        "friction_range": [
+          0.1,
+          2.0
+        ],
+        "randomize_restitution": true,
+        "restitution_range": [
+          0.0,
+          1.0
+        ],
+        "randomize_base_mass": true,
+        "added_mass_range": [
+          -2.0,
+          3.0
+        ],
+        "randomize_inertia": true,
+        "randomize_inertia_range": [
+          0.8,
+          1.2
+        ],
+        "randomize_base_com": true,
+        "rand_com_vec": [
+          0.05,
+          0.05,
+          0.05
+        ],
+        "randomize_Kp": true,
+        "randomize_Kp_range": [
+          0.9,
+          1.1
+        ],
+        "randomize_Kd": true,
+        "randomize_Kd_range": [
+          0.9,
+          1.1
+        ],
+        "randomize_motor_torque": true,
+        "randomize_motor_torque_range": [
+          0.9,
+          1.1
+        ],
+        "randomize_default_dof_pos": true,
+        "randomize_default_dof_pos_range": [
+          -0.05,
+          0.05
+        ],
+        "randomize_action_delay": true,
+        "delay_ms_range": [
+          0.0,
+          10.0
+        ],
+        "push_robots": false
+      }
+    },
+    "collision_representation": {
+      "wheel_collision_mode_detected": "mesh",
+      "wheel_collision_geom_names": [
+        "l_wheel_Link_collision_0",
+        "r_wheel_Link_collision_0"
+      ],
+      "wheel_collision_geom_types": [
+        "mesh",
+        "mesh"
+      ],
+      "wheel_collision_mesh_count": 2,
+      "wheel_collision_cylinder_count": 0,
+      "wheel_collision_mesh_asset_names": [
+        "visual_Left_wheel_link",
+        "visual_Right_wheel_link"
+      ],
+      "wheel_collision_mesh_asset_sources": [
+        "visual_stl",
+        "visual_stl"
+      ],
+      "wheel_collision_mesh_asset_source_detected": "visual_stl"
+    },
+    "code_paths": [
+      "wheel_legged_gym/scripts/verify_sim2sim_mujoco.py",
+      "mujoco_sim/mujoco_balance_env.py",
+      "mujoco_sim/observation_computer.py",
+      "mujoco_sim/policy_loader.py",
+      "mujoco_sim/domain_randomizer.py",
+      "mujoco_sim/control_config.py",
+      "mujoco_sim/vmc_kinematics.py",
+      "resources/robots/serialleg/mjcf/serialleg_fidelity.xml"
+    ],
+    "preflight": {
+      "joint_qpos_addrs": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "joint_dof_addrs": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "actuator_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "obs_shape": [
+        27
+      ],
+      "action_shape": [
+        6
+      ],
+      "ctrl_shape": [
+        6
+      ],
+      "timing": {
+        "dt": 0.01,
+        "sim_dt": 0.005,
+        "decimation": 2
+      },
+      "seed_check": {
+        "seed": 0,
+        "numpy_probe": 0.5488135039273248,
+        "torch_probe": 0.49625658988952637,
+        "torch_initial_seed": 0
+      },
+      "env_diagnostics": {
+        "joint_names": [
+          "lf0_Joint",
+          "lf1_Joint",
+          "l_wheel_Joint",
+          "rf0_Joint",
+          "rf1_Joint",
+          "r_wheel_Joint"
+        ],
+        "joint_ids": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "joint_qpos_addrs": [
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "joint_dof_addrs": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "actuator_names": [
+          "lf0_act",
+          "lf1_act",
+          "l_wheel_act",
+          "rf0_act",
+          "rf1_act",
+          "r_wheel_act"
+        ],
+        "actuator_ids": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "ctrl_size": 6,
+        "qpos_size": 13,
+        "qvel_size": 12,
+        "dt": 0.01,
+        "sim_dt": 0.005,
+        "decimation": 2,
+        "controller_mode": "vmc_balance_exact",
+        "implemented_controller_mode": "vmc_balance_exact",
+        "domain_rand_mode": "off",
+        "fidelity_level": "fidelity",
+        "domain_rand_config": {
+          "randomize_friction": true,
+          "friction_range": [
+            0.1,
+            2.0
+          ],
+          "randomize_restitution": true,
+          "restitution_range": [
+            0.0,
+            1.0
+          ],
+          "randomize_base_mass": true,
+          "added_mass_range": [
+            -2.0,
+            3.0
+          ],
+          "randomize_inertia": true,
+          "randomize_inertia_range": [
+            0.8,
+            1.2
+          ],
+          "randomize_base_com": true,
+          "rand_com_vec": [
+            0.05,
+            0.05,
+            0.05
+          ],
+          "randomize_Kp": true,
+          "randomize_Kp_range": [
+            0.9,
+            1.1
+          ],
+          "randomize_Kd": true,
+          "randomize_Kd_range": [
+            0.9,
+            1.1
+          ],
+          "randomize_motor_torque": true,
+          "randomize_motor_torque_range": [
+            0.9,
+            1.1
+          ],
+          "randomize_default_dof_pos": true,
+          "randomize_default_dof_pos_range": [
+            -0.05,
+            0.05
+          ],
+          "randomize_action_delay": true,
+          "delay_ms_range": [
+            0.0,
+            10.0
+          ],
+          "push_robots": false
+        },
+        "wheel_collision_geom_names": [
+          "l_wheel_Link_collision_0",
+          "r_wheel_Link_collision_0"
+        ],
+        "wheel_collision_geom_types": [
+          "mesh",
+          "mesh"
+        ],
+        "wheel_collision_mesh_count": 2,
+        "wheel_collision_cylinder_count": 0,
+        "wheel_collision_mode_detected": "mesh",
+        "wheel_collision_mesh_asset_names": [
+          "visual_Left_wheel_link",
+          "visual_Right_wheel_link"
+        ],
+        "wheel_collision_mesh_asset_sources": [
+          "visual_stl",
+          "visual_stl"
+        ],
+        "wheel_collision_mesh_asset_source_detected": "visual_stl"
+      },
+      "collision_representation": {
+        "wheel_collision_mode_detected": "mesh",
+        "wheel_collision_geom_names": [
+          "l_wheel_Link_collision_0",
+          "r_wheel_Link_collision_0"
+        ],
+        "wheel_collision_geom_types": [
+          "mesh",
+          "mesh"
+        ],
+        "wheel_collision_mesh_count": 2,
+        "wheel_collision_cylinder_count": 0,
+        "wheel_collision_mesh_asset_names": [
+          "visual_Left_wheel_link",
+          "visual_Right_wheel_link"
+        ],
+        "wheel_collision_mesh_asset_sources": [
+          "visual_stl",
+          "visual_stl"
+        ],
+        "wheel_collision_mesh_asset_source_detected": "visual_stl"
+      },
+      "preflight_step": {
+        "reward": -3.099997820577016e-05,
+        "done": false,
+        "termination_reason": "running"
+      }
+    }
+  },
+  "aggregate": {
+    "num_episodes": 1,
+    "mean_steps": 200.0,
+    "std_steps": 0.0,
+    "mean_reward": -0.2623041044440346,
+    "std_reward": 0.0,
+    "mean_upright_ratio": 0.975,
+    "mean_tilt": 1.5714517530925256,
+    "mean_max_tilt": 12.993451355693047,
+    "mean_angvel": 0.46204898377564185,
+    "mean_base_height": 0.137554236262996,
+    "std_base_height": 0.0,
+    "survival_time_seconds": 2.0,
+    "fall_rate": 0.0,
+    "mean_prompt_torque_trigger_ratio": 0.0,
+    "mean_torque_saturation_rate": 0.96,
+    "mean_action_clip_rate": 0.0,
+    "failure_modes": {
+      "timeout": 1
+    },
+    "episode_params_summary": {}
+  },
+  "episodes": [
+    {
+      "episode": 0,
+      "steps": 200,
+      "reward": -0.2623041044440346,
+      "mean_height": 0.137554236262996,
+      "std_height": 0.044628750042258525,
+      "upright_ratio": 0.975,
+      "max_tilt": 12.993451355693047,
+      "mean_tilt": 1.5714517530925256,
+      "mean_angvel": 0.46204898377564185,
+      "survival_time_seconds": 2.0,
+      "termination_reason": "timeout",
+      "fall": false,
+      "prompt_torque_steps": 0,
+      "prompt_torque_trigger_ratio": 0.0,
+      "torque_saturation_steps": 384,
+      "torque_saturation_rate": 0.96,
+      "action_clip_steps": 0,
+      "action_clip_rate": 0.0,
+      "episode_params": {
+        "mode": "off",
+        "randomized": false,
+        "restitution_application": "none"
+      },
+      "controller_debug_summary": {
+        "mode": "vmc_balance_exact",
+        "action_delay_idx": 0,
+        "prompt_torque_step_count": 0,
+        "torque_saturation_count": 384,
+        "action_clip_count": 0,
+        "final_pitch_angle": -0.00549583591303001,
+        "contacts": {
+          "base_contact": true,
+          "left_wheel_contact": true,
+          "right_wheel_contact": true
+        },
+        "last_ctrl": [
+          16.953659636087327,
+          29.91640372793134,
+          2.0,
+          17.69951832290439,
+          30.0,
+          2.0
+        ],
+        "theta0_ref": [
+          -0.3710637681186199,
+          -0.4463860446214676
+        ],
+        "l0_ref": [
+          -0.006977682113647465,
+          -0.02410414695739746
+        ],
+        "wheel_vel_ref": [
+          7.121104598045349,
+          11.861460208892822
+        ],
+        "theta0": [
+          1.2989916887519604,
+          1.3254693641352047
+        ],
+        "L0": [
+          0.19696075873076152,
+          0.17316354587526364
+        ],
+        "torque_leg": [
+          -16.953659636087323,
+          -17.69951832290439
+        ],
+        "force_leg": [
+          -163.1159132125025,
+          -157.81930834171663
+        ],
+        "torque_wheel": [
+          2.7266140268373107,
+          5.663553078466252
+        ],
+        "prompt_torque_triggered": false
+      }
+    }
+  ]
+}
