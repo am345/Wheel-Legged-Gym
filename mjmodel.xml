@@ -1,0 +1,59 @@
+<mujoco model="serialleg">
+  <compiler angle="radian" meshdir="../meshes/"/>
+
+  <option timestep="0.005" iterations="50"/>
+
+  <asset>
+    <texture type="2d" name="grid" builtin="checker" rgb1="0.1 0.2 0.3" rgb2="0.2 0.3 0.4" width="512" height="512"/>
+    <material name="grid" texture="grid" texuniform="true" reflectance="0.2"/>
+  </asset>
+
+  <worldbody>
+    <geom name="floor" size="0 0 0.05" type="plane" friction="0.8" material="grid"/>
+    <light name="spotlight" target="base_link" pos="0 -6 4" dir="0 0 -1" cutoff="30" diffuse="0.8 0.8 0.8" mode="targetbodycom"/>
+    <body name="base_link" pos="0 0 0.3">
+      <inertial pos="0 0 0" mass="11.88" diaginertia="0.157 0.164 0.258"/>
+      <joint type="free" limited="false" actuatorfrclimited="false"/>
+      <geom name="base_geom" size="0.15 0.08 0.04" type="box" friction="0.8" rgba="0.8 0.8 0.8 1"/>
+      <body name="lf0_Link" pos="0.08 0.08 0">
+        <inertial pos="0 0 -0.08" mass="0.3" diaginertia="0.001 0.001 0.0005"/>
+        <joint name="lf0_Joint" pos="0 0 0" axis="1 0 0" range="-1.57 1.57" damping="0.1"/>
+        <geom name="lf0_geom" size="0.02 0.0835" pos="0 0 -0.0835" type="capsule" rgba="0.2 0.6 0.8 1"/>
+        <body name="lf1_Link" pos="0 0 -0.167">
+          <inertial pos="0 0 -0.1" mass="0.35" diaginertia="0.002 0.002 0.0005"/>
+          <joint name="lf1_Joint" pos="0 0 0" axis="1 0 0" range="-0.6 0.8" damping="0.1"/>
+          <geom name="lf1_geom" size="0.018 0.1" pos="0 0 -0.1" type="capsule" rgba="0.2 0.6 0.8 1"/>
+          <body name="l_wheel_Link" pos="0 0 -0.2">
+            <inertial pos="0 0 0" mass="0.28" diaginertia="0.0005 0.0005 0.0008"/>
+            <joint name="l_wheel_Joint" pos="0 0 0" axis="0 1 0" damping="0.05"/>
+            <geom name="l_wheel_geom" size="0.0675 0.025" type="cylinder" rgba="0.1 0.1 0.1 1"/>
+          </body>
+        </body>
+      </body>
+      <body name="rf0_Link" pos="0.08 -0.08 0">
+        <inertial pos="0 0 -0.08" mass="0.3" diaginertia="0.001 0.001 0.0005"/>
+        <joint name="rf0_Joint" pos="0 0 0" axis="1 0 0" range="-1.57 1.57" damping="0.1"/>
+        <geom name="rf0_geom" size="0.02 0.0835" pos="0 0 -0.0835" type="capsule" rgba="0.8 0.2 0.2 1"/>
+        <body name="rf1_Link" pos="0 0 -0.167">
+          <inertial pos="0 0 -0.1" mass="0.33" diaginertia="0.002 0.002 0.0005"/>
+          <joint name="rf1_Joint" pos="0 0 0" axis="1 0 0" range="-0.6 0.8" damping="0.1"/>
+          <geom name="rf1_geom" size="0.018 0.1" pos="0 0 -0.1" type="capsule" rgba="0.8 0.2 0.2 1"/>
+          <body name="r_wheel_Link" pos="0 0 -0.2">
+            <inertial pos="0 0 0" mass="0.28" diaginertia="0.0005 0.0005 0.0008"/>
+            <joint name="r_wheel_Joint" pos="0 0 0" axis="0 1 0" damping="0.05"/>
+            <geom name="r_wheel_geom" size="0.0675 0.025" type="cylinder" rgba="0.1 0.1 0.1 1"/>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <general name="lf0_act" joint="lf0_Joint" ctrlrange="-1.57 1.57" forcerange="-30 30" biastype="affine" gainprm="40" biasprm="0 -40 -1"/>
+    <general name="lf1_act" joint="lf1_Joint" ctrlrange="-0.6 0.8" forcerange="-30 30" biastype="affine" gainprm="40" biasprm="0 -40 -1"/>
+    <general name="rf0_act" joint="rf0_Joint" ctrlrange="-1.57 1.57" forcerange="-30 30" biastype="affine" gainprm="40" biasprm="0 -40 -1"/>
+    <general name="rf1_act" joint="rf1_Joint" ctrlrange="-0.6 0.8" forcerange="-30 30" biastype="affine" gainprm="40" biasprm="0 -40 -1"/>
+    <general name="l_wheel_act" joint="l_wheel_Joint" ctrlrange="-50 50" forcerange="-2 2" biastype="affine" gainprm="0.5" biasprm="0 0 -0.5"/>
+    <general name="r_wheel_act" joint="r_wheel_Joint" ctrlrange="-50 50" forcerange="-2 2" biastype="affine" gainprm="0.5" biasprm="0 0 -0.5"/>
+  </actuator>
+</mujoco>

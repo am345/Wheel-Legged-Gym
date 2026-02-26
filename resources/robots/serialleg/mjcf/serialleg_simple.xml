@@ -1,0 +1,72 @@
+<mujoco model="serialleg">
+  <compiler angle="radian" meshdir="../meshes" autolimits="true"/>
+
+  <option timestep="0.005" iterations="50" solver="Newton" cone="pyramidal"/>
+
+  <asset>
+    <!-- Ground plane texture -->
+    <texture name="grid" type="2d" builtin="checker" width="512" height="512" rgb1=".1 .2 .3" rgb2=".2 .3 .4"/>
+    <material name="grid" texture="grid" texrepeat="1 1" texuniform="true" reflectance=".2"/>
+  </asset>
+
+  <worldbody>
+    <!-- Ground plane -->
+    <geom name="floor" type="plane" size="0 0 .05" material="grid" friction="0.8 0.005 0.0001"/>
+    <light name="spotlight" mode="targetbodycom" target="base_link" diffuse=".8 .8 .8" specular="0.3 0.3 0.3" pos="0 -6 4" cutoff="30"/>
+
+    <!-- Robot base -->
+    <body name="base_link" pos="0 0 0.30">
+      <freejoint/>
+      <inertial pos="0 0 0" mass="11.88" diaginertia="0.157 0.164 0.258"/>
+      <geom name="base_geom" type="box" size="0.15 0.08 0.04" rgba="0.8 0.8 0.8 1" friction="0.8 0.005 0.0001"/>
+
+      <!-- Left leg -->
+      <body name="lf0_Link" pos="0.08 0.08 0">
+        <inertial pos="-0.08 0 0" mass="0.30" diaginertia="0.001 0.001 0.0005"/>
+        <joint name="lf0_Joint" type="hinge" axis="0 -1 0" range="-1.57 1.57" damping="0.1"/>
+        <geom name="lf0_geom" type="capsule" fromto="0 0 0 -0.167 0 0" size="0.02" rgba="0.2 0.6 0.8 1"/>
+
+        <body name="lf1_Link" pos="-0.167 0 0">
+          <inertial pos="-0.10 0 0" mass="0.35" diaginertia="0.002 0.002 0.0005"/>
+          <joint name="lf1_Joint" type="hinge" axis="0 -1 0" range="-0.6 0.8" damping="0.1"/>
+          <geom name="lf1_geom" type="capsule" fromto="0 0 0 -0.200 0 0" size="0.018" rgba="0.2 0.6 0.8 1"/>
+
+          <body name="l_wheel_Link" pos="-0.200 0 0">
+            <inertial pos="0 0 0" mass="0.28" diaginertia="0.0005 0.0005 0.0008"/>
+            <joint name="l_wheel_Joint" type="hinge" axis="0 1 0" damping="0.05"/>
+            <geom name="l_wheel_geom" type="cylinder" size="0.0675 0.025" rgba="0.1 0.1 0.1 1" friction="1.0 0.005 0.0001"/>
+          </body>
+        </body>
+      </body>
+
+      <!-- Right leg -->
+      <body name="rf0_Link" pos="0.08 -0.08 0">
+        <inertial pos="-0.08 0 0" mass="0.30" diaginertia="0.001 0.001 0.0005"/>
+        <joint name="rf0_Joint" type="hinge" axis="0 -1 0" range="-1.57 1.57" damping="0.1"/>
+        <geom name="rf0_geom" type="capsule" fromto="0 0 0 -0.167 0 0" size="0.02" rgba="0.8 0.2 0.2 1"/>
+
+        <body name="rf1_Link" pos="-0.167 0 0">
+          <inertial pos="-0.10 0 0" mass="0.33" diaginertia="0.002 0.002 0.0005"/>
+          <joint name="rf1_Joint" type="hinge" axis="0 -1 0" range="-0.6 0.8" damping="0.1"/>
+          <geom name="rf1_geom" type="capsule" fromto="0 0 0 -0.200 0 0" size="0.018" rgba="0.8 0.2 0.2 1"/>
+
+          <body name="r_wheel_Link" pos="-0.200 0 0">
+            <inertial pos="0 0 0" mass="0.28" diaginertia="0.0005 0.0005 0.0008"/>
+            <joint name="r_wheel_Joint" type="hinge" axis="0 1 0" damping="0.05"/>
+            <geom name="r_wheel_geom" type="cylinder" size="0.0675 0.025" rgba="0.1 0.1 0.1 1" friction="1.0 0.005 0.0001"/>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <!-- 使用motor actuator进行直接力矩控制 -->
+    <motor name="lf0_act" joint="lf0_Joint" gear="1" ctrllimited="true" ctrlrange="-30 30"/>
+    <motor name="lf1_act" joint="lf1_Joint" gear="1" ctrllimited="true" ctrlrange="-30 30"/>
+    <motor name="l_wheel_act" joint="l_wheel_Joint" gear="1" ctrllimited="true" ctrlrange="-2 2"/>
+    <motor name="rf0_act" joint="rf0_Joint" gear="1" ctrllimited="true" ctrlrange="-30 30"/>
+    <motor name="rf1_act" joint="rf1_Joint" gear="1" ctrllimited="true" ctrlrange="-30 30"/>
+    <motor name="r_wheel_act" joint="r_wheel_Joint" gear="1" ctrllimited="true" ctrlrange="-2 2"/>
+  </actuator>
+</mujoco>
