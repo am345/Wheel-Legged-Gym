@@ -19,6 +19,16 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
         # 关闭curriculum，因为不需要速度跟踪
         curriculum = False
 
+    class control(WheelLeggedVMCCfg.control):
+        # Replace constant leg feedforward with measured linear gas spring in balance task.
+        feedforward_force = 0.0
+
+        # Gas spring model: F[N] = gain * (k * l[m] + b), where l is current virtual leg length L0.
+        gas_spring_enable = True
+        gas_spring_gain = 2.0  # dimensionless scale for easy tuning
+        gas_spring_k = 188.3447  # [N/m]
+        gas_spring_b = 1.2055  # [N]
+
     class rewards(WheelLeggedVMCCfg.rewards):
         class scales(WheelLeggedVMCCfg.rewards.scales):
             # 关闭速度跟踪奖励，专注于站起来
@@ -54,5 +64,5 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
 class WheelLeggedVMCBalanceCfgPPO(WheelLeggedVMCCfgPPO):
     class runner(WheelLeggedVMCCfgPPO.runner):
         experiment_name = "wheel_legged_vmc_balance"
-        max_iterations = 2000
+        max_iterations = 4000
         save_interval = 50

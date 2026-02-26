@@ -35,24 +35,72 @@ class LeggedRobotVMCBalance(LeggedRobotVMC):
         )
 
     def _compute_torques(self, actions):
-        """当pitch角度过大时，强制腿伸长作为提示"""
-        # 调用父类计算正常力矩
-        torques = super()._compute_torques(actions)
+        """Balance task VMC torque with optional axial gas-spring force (no pitch prompt torque)."""
+        theta0_ref = (
+            torch.cat(
+                (
+                    (actions[:, 0]).unsqueeze(1),
+                    (actions[:, 3]).unsqueeze(1),
+                ),
+                axis=1,
+            )
+            * self.cfg.control.action_scale_theta
+        )
+        l0_ref = (
+            torch.cat(
+                (
+                    (actions[:, 1]).unsqueeze(1),
+                    (actions[:, 4]).unsqueeze(1),
+                ),
+                axis=1,
+            )
+            * self.cfg.control.action_scale_l0
+        ) + self.cfg.control.l0_offset
+        wheel_vel_ref = (
+            torch.cat(
+                (
+                    (actions[:, 2]).unsqueeze(1),
+                    (actions[:, 5]).unsqueeze(1),
+                ),
+                axis=1,
+            )
+            * self.cfg.control.action_scale_vel
+        )
 
-        # 检查pitch角度是否超过阈值（20度 = 0.349 rad）
-        pitch_threshold = 0.349  # 20度
-        large_pitch = torch.abs(self.pitch_angle) > pitch_threshold
+        self.torque_leg = (
+            self.theta_kp * (theta0_ref - self.theta0) - self.theta_kd * self.theta0_dot
+        )
+        self.force_leg = self.l0_kp * (l0_ref - self.L0) - self.l0_kd * self.L0_dot
+        self.torque_wheel = self.d_gains[:, [2, 5]] * (
+            wheel_vel_ref - self.dof_vel[:, [2, 5]]
+        )
 
-        if large_pitch.any():
-            # 找到小腿关节索引（lf1, rf1）
-            lf1_idx = self.dof_names.index("lf1_Joint") if "lf1_Joint" in self.dof_names else 1
-            rf1_idx = self.dof_names.index("rf1_Joint") if "rf1_Joint" in self.dof_names else 4
+        axial_force = self.force_leg + self.cfg.control.feedforward_force
+        if getattr(self.cfg.control, "gas_spring_enable", False):
+            # Linear gas spring: F[N] = gain * (k * l[m] + b), where l is current virtual leg length L0.
+            gas_force = (
+                getattr(self.cfg.control, "gas_spring_gain", 1.0)
+                * (self.cfg.control.gas_spring_k * self.L0 + self.cfg.control.gas_spring_b)
+            )
+            axial_force = axial_force + gas_force
 
-            # 对pitch角度过大的环境，给小腿关节施加负扭矩（伸长腿）
-            torques[large_pitch, lf1_idx] = -30.0
-            torques[large_pitch, rf1_idx] = -30.0
+        T1, T2 = self.VMC(axial_force, self.torque_leg)
 
-        return torques
+        torques = torch.cat(
+            (
+                T1[:, 0].unsqueeze(1),
+                T2[:, 0].unsqueeze(1),
+                self.torque_wheel[:, 0].unsqueeze(1),
+                T1[:, 1].unsqueeze(1),
+                T2[:, 1].unsqueeze(1),
+                self.torque_wheel[:, 1].unsqueeze(1),
+            ),
+            axis=1,
+        )
+
+        return torch.clip(
+            torques * self.torques_scale, -self.torque_limits, self.torque_limits
+        )
 
     def _reward_upward(self):
         """鼓励机体保持直立：projected_gravity·z 接近 -1 (robot_lab 标准)"""
