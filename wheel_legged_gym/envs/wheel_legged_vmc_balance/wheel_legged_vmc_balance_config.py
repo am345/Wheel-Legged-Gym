@@ -28,6 +28,19 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
             # 添加 upward 奖励（倒地自救核心）
             upward = -1.0
 
+            # 新增：渐进式恢复奖励
+            leg_extension_when_fallen = 2.0
+            recovery_angular_velocity = 1.5
+            uprightness_shaped = -0.5
+            orientation_refined = -2.0
+
+            # 修改：禁用原始orientation（使用refined版本）
+            orientation = 0.0
+
+            # 修改：降低与恢复动作冲突的惩罚
+            dof_vel = -2e-5      # 从 -5e-5 降低
+            ang_vel_xy = 0.0     # 在恢复学习期间禁用
+
     class balance_reset:
         """Random initialization for fall recovery training"""
         # 位置扰动
@@ -54,5 +67,5 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
 class WheelLeggedVMCBalanceCfgPPO(WheelLeggedVMCCfgPPO):
     class runner(WheelLeggedVMCCfgPPO.runner):
         experiment_name = "wheel_legged_vmc_balance"
-        max_iterations = 5000
+        max_iterations = 3000
         save_interval = 50
