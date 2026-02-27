@@ -165,6 +165,9 @@ def _reward_orientation(self):
 # 平衡恢复任务训练
 python wheel_legged_gym/scripts/train.py --task=wheel_legged_vmc_balance
 
+# 单策略运动+自起任务训练
+python wheel_legged_gym/scripts/train.py --task=wheel_legged_fzqver --headless
+
 # 平地 VMC 训练 (低显存)
 python wheel_legged_gym/scripts/train.py --task=wheel_legged_vmc_flat
 
