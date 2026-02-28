@@ -49,11 +49,12 @@
   </worldbody>
 
   <actuator>
-    <general name="lf0_act" joint="lf0_Joint" ctrlrange="-1.57 1.57" forcerange="-30 30" biastype="affine" gainprm="40" biasprm="0 -40 -1"/>
-    <general name="lf1_act" joint="lf1_Joint" ctrlrange="-0.6 0.8" forcerange="-30 30" biastype="affine" gainprm="40" biasprm="0 -40 -1"/>
-    <general name="rf0_act" joint="rf0_Joint" ctrlrange="-1.57 1.57" forcerange="-30 30" biastype="affine" gainprm="40" biasprm="0 -40 -1"/>
-    <general name="rf1_act" joint="rf1_Joint" ctrlrange="-0.6 0.8" forcerange="-30 30" biastype="affine" gainprm="40" biasprm="0 -40 -1"/>
-    <general name="l_wheel_act" joint="l_wheel_Joint" ctrlrange="-50 50" forcerange="-2 2" biastype="affine" gainprm="0.5" biasprm="0 0 -0.5"/>
-    <general name="r_wheel_act" joint="r_wheel_Joint" ctrlrange="-50 50" forcerange="-2 2" biastype="affine" gainprm="0.5" biasprm="0 0 -0.5"/>
+    <!-- 使用motor actuator进行直接力矩控制 -->
+    <motor name="lf0_act" joint="lf0_Joint" gear="1" ctrllimited="true" ctrlrange="-30 30"/>
+    <motor name="lf1_act" joint="lf1_Joint" gear="1" ctrllimited="true" ctrlrange="-30 30"/>
+    <motor name="l_wheel_act" joint="l_wheel_Joint" gear="1" ctrllimited="true" ctrlrange="-2 2"/>
+    <motor name="rf0_act" joint="rf0_Joint" gear="1" ctrllimited="true" ctrlrange="-30 30"/>
+    <motor name="rf1_act" joint="rf1_Joint" gear="1" ctrllimited="true" ctrlrange="-30 30"/>
+    <motor name="r_wheel_act" joint="r_wheel_Joint" gear="1" ctrllimited="true" ctrlrange="-2 2"/>
   </actuator>
 </mujoco>

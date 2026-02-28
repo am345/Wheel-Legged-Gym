@@ -11,13 +11,49 @@
 
 import os
 import time
-from isaacgym import gymapi
+from isaacgym import gymapi, gymtorch
 import torch
 import numpy as np
 
 import wheel_legged_gym.envs
 from wheel_legged_gym.utils import get_args, task_registry
 from wheel_legged_gym import WHEEL_LEGGED_GYM_ROOT_DIR
+
+
+def custom_reset_dofs(env, env_ids):
+    """Custom DOF reset with fixed shin joints and randomized thigh joints
+
+    Joint indices:
+    0: lf0_Joint (left thigh)
+    1: lf1_Joint (left shin)
+    2: l_wheel_Joint (left wheel)
+    3: rf0_Joint (right thigh)
+    4: rf1_Joint (right shin)
+    5: r_wheel_Joint (right wheel)
+    """
+    # Randomize thigh joints (f0) in range [-3.14, 3.14]
+    env.dof_pos[env_ids, 0] = torch.rand(len(env_ids), device=env.device) * 6.28 - 3.14  # lf0
+    env.dof_pos[env_ids, 3] = torch.rand(len(env_ids), device=env.device) * 6.28 - 3.14  # rf0
+
+    # Fix shin joints (f1) to -0.6
+    env.dof_pos[env_ids, 1] = -0.6  # lf1
+    env.dof_pos[env_ids, 4] = -0.6  # rf1
+
+    # Keep wheel joints at 0
+    env.dof_pos[env_ids, 2] = 0.0  # l_wheel
+    env.dof_pos[env_ids, 5] = 0.0  # r_wheel
+
+    # Set all velocities to zero
+    env.dof_vel[env_ids] = 0.0
+
+    # Apply to simulation
+    env_ids_int32 = env_ids.to(dtype=torch.int32)
+    env.gym.set_dof_state_tensor_indexed(
+        env.sim,
+        gymtorch.unwrap_tensor(env.dof_state),
+        gymtorch.unwrap_tensor(env_ids_int32),
+        len(env_ids_int32),
+    )
 
 
 class BalanceMonitor:
@@ -128,8 +164,22 @@ def play(args):
     env_cfg.noise.add_noise = False
     env_cfg.domain_rand.push_robots = False
 
+    # Disable default joint randomization (we'll do custom randomization)
+    env_cfg.domain_rand.randomize_default_dof_pos = False
+
     # Create environment
     env, _ = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
+
+    # Wrap the reset_idx method to apply custom joint initialization
+    original_reset_idx = env.reset_idx
+    def wrapped_reset_idx(env_ids):
+        original_reset_idx(env_ids)
+        custom_reset_dofs(env, env_ids)
+    env.reset_idx = wrapped_reset_idx
+
+    # Apply initial custom reset
+    custom_reset_dofs(env, torch.arange(env.num_envs, device=env.device))
+
     obs, obs_history = env.get_observations()
 
     # Load policy
@@ -183,7 +233,7 @@ def play(args):
                     monitor.on_reset(success=success)
                     env.reset_idx(torch.arange(env.num_envs, device=env.device))
                     started = False
-                    print("\nRESET - Control disabled")
+                    print("\nRESET - Control disabled (custom joint init: thigh random, shin=-0.6)")
 
                 elif evt.action == "TOGGLE_STATS" and evt.value > 0:
                     monitor.show_stats = not monitor.show_stats
