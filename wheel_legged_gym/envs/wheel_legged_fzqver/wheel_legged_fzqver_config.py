@@ -29,22 +29,32 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
 
     class rewards(WheelLeggedVMCCfg.rewards):
         class scales(WheelLeggedVMCCfg.rewards.scales):
+            # Velocity tracking rewards (Go2W)
             tracking_lin_vel = 3.0
             tracking_ang_vel = 1.5
             upward = 1.0
 
+            # Root penalties (Go2W)
             lin_vel_z = -2.0
             ang_vel_xy = -0.05
-            base_height = 2.0
+            base_height = 0.0
 
+            # Joint penalties (Go2W)
             torques = -2.5e-5
-            dof_vel = -2.5e-5
+            torques_wheel = 0.0
+            dof_vel = 0.0
+            dof_vel_wheel = 0.0
             dof_acc = -2.5e-7
+            dof_acc_wheel = -2.5e-9
             power = -2.0e-5
             action_rate = -0.01
             stand_still = -2.0
+            joint_pos_penalty = -1.0
+            joint_mirror = -0.05
             dof_pos_limits = -5.0
             collision = -1.0
+            contact_forces = -1.5e-4
+            feet_contact_without_cmd = 0.1
 
             orientation = 0.0
             nominal_state = 0.0
@@ -55,6 +65,12 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
 
     class fzqver_rewards:
         upright_gating_max = 0.7
+        joint_pos_penalty_stand_still_scale = 5.0
+        joint_pos_penalty_velocity_threshold = 0.5
+        joint_pos_penalty_command_threshold = 0.1
+        contact_force_threshold = 100.0
+        feet_contact_threshold = 1.0
+        feet_contact_cmd_threshold = 0.1
 
     class fzqver_reset:
         upright_ratio = 0.2
@@ -87,4 +103,3 @@ class WheelLeggedFzqverCfgPPO(WheelLeggedVMCCfgPPO):
         num_steps_per_env = 24
         max_iterations = 20000
         save_interval = 100
-

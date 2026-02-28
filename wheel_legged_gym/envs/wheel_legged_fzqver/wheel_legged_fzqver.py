@@ -131,6 +131,59 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
         gate_max = max(float(self.cfg.fzqver_rewards.upright_gating_max), 1e-6)
         return torch.clamp(-self.projected_gravity[:, 2], 0.0, gate_max) / gate_max
 
+    def _get_wheel_dof_indices(self):
+        if not hasattr(self, "_wheel_dof_idx_cache"):
+            wheel_idx = [i for i, n in enumerate(self.dof_names) if "wheel" in n.lower()]
+            if len(wheel_idx) == 0 and self.num_dof >= 6:
+                wheel_idx = [2, 5]
+            self._wheel_dof_idx_cache = torch.tensor(
+                wheel_idx, dtype=torch.long, device=self.device
+            )
+        return self._wheel_dof_idx_cache
+
+    def _get_leg_dof_indices(self):
+        if not hasattr(self, "_leg_dof_idx_cache"):
+            wheel_idx = set(self._get_wheel_dof_indices().tolist())
+            leg_idx = [i for i in range(self.num_dof) if i not in wheel_idx]
+            self._leg_dof_idx_cache = torch.tensor(
+                leg_idx, dtype=torch.long, device=self.device
+            )
+        return self._leg_dof_idx_cache
+
+    def _get_wheel_body_indices(self):
+        if not hasattr(self, "_wheel_body_idx_cache"):
+            wheel_body_idx = []
+            try:
+                body_names = self.gym.get_actor_rigid_body_names(
+                    self.envs[0], self.actor_handles[0]
+                )
+                wheel_body_idx = [i for i, n in enumerate(body_names) if "wheel" in n.lower()]
+            except Exception:
+                wheel_body_idx = []
+            if len(wheel_body_idx) == 0 and hasattr(self, "feet_indices"):
+                wheel_body_idx = self.feet_indices.tolist()
+            self._wheel_body_idx_cache = torch.tensor(
+                wheel_body_idx, dtype=torch.long, device=self.device
+            )
+        return self._wheel_body_idx_cache
+
+    def _get_mirror_dof_pairs(self):
+        if not hasattr(self, "_mirror_dof_pairs_cache"):
+            pairs = []
+            name_to_idx = {n: i for i, n in enumerate(self.dof_names)}
+            for name in self.dof_names:
+                lname = name.lower()
+                if "wheel" in lname:
+                    continue
+                if name.startswith("lf"):
+                    mirror_name = "rf" + name[2:]
+                    if mirror_name in name_to_idx:
+                        pairs.append((name_to_idx[name], name_to_idx[mirror_name]))
+            if len(pairs) == 0 and self.num_dof >= 5:
+                pairs = [(0, 3), (1, 4)]
+            self._mirror_dof_pairs_cache = pairs
+        return self._mirror_dof_pairs_cache
+
     def _reward_upward(self):
         return torch.square(1.0 - self.projected_gravity[:, 2])
 
@@ -150,22 +203,92 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
         return super()._reward_base_height() * self._upright_factor()
 
     def _reward_torques(self):
-        return super()._reward_torques() * self._upright_factor()
+        leg_idx = self._get_leg_dof_indices()
+        if leg_idx.numel() == 0:
+            return torch.zeros(self.num_envs, device=self.device)
+        return torch.sum(torch.square(self.torques[:, leg_idx]), dim=1) * self._upright_factor()
+
+    def _reward_torques_wheel(self):
+        wheel_idx = self._get_wheel_dof_indices()
+        if wheel_idx.numel() == 0:
+            return torch.zeros(self.num_envs, device=self.device)
+        return torch.sum(torch.square(self.torques[:, wheel_idx]), dim=1) * self._upright_factor()
 
     def _reward_dof_vel(self):
-        return super()._reward_dof_vel() * self._upright_factor()
+        leg_idx = self._get_leg_dof_indices()
+        if leg_idx.numel() == 0:
+            return torch.zeros(self.num_envs, device=self.device)
+        return torch.sum(torch.square(self.dof_vel[:, leg_idx]), dim=1) * self._upright_factor()
+
+    def _reward_dof_vel_wheel(self):
+        wheel_idx = self._get_wheel_dof_indices()
+        if wheel_idx.numel() == 0:
+            return torch.zeros(self.num_envs, device=self.device)
+        return torch.sum(torch.square(self.dof_vel[:, wheel_idx]), dim=1) * self._upright_factor()
 
     def _reward_dof_acc(self):
-        return super()._reward_dof_acc() * self._upright_factor()
+        leg_idx = self._get_leg_dof_indices()
+        if leg_idx.numel() == 0:
+            return torch.zeros(self.num_envs, device=self.device)
+        return torch.sum(torch.square(self.dof_acc[:, leg_idx]), dim=1) * self._upright_factor()
+
+    def _reward_dof_acc_wheel(self):
+        wheel_idx = self._get_wheel_dof_indices()
+        if wheel_idx.numel() == 0:
+            return torch.zeros(self.num_envs, device=self.device)
+        return torch.sum(torch.square(self.dof_acc[:, wheel_idx]), dim=1) * self._upright_factor()
 
     def _reward_power(self):
-        return super()._reward_power() * self._upright_factor()
+        leg_idx = self._get_leg_dof_indices()
+        if leg_idx.numel() == 0:
+            return torch.zeros(self.num_envs, device=self.device)
+        return (
+            torch.sum(torch.abs(self.torques[:, leg_idx] * self.dof_vel[:, leg_idx]), dim=1)
+            * self._upright_factor()
+        )
 
     def _reward_action_rate(self):
         return super()._reward_action_rate() * self._upright_factor()
 
     def _reward_stand_still(self):
-        return super()._reward_stand_still() * self._upright_factor()
+        leg_idx = self._get_leg_dof_indices()
+        if leg_idx.numel() == 0:
+            return torch.zeros(self.num_envs, device=self.device)
+        rew = torch.sum(
+            torch.abs(self.dof_pos[:, leg_idx] - self.default_dof_pos[:, leg_idx]), dim=1
+        ) * (torch.norm(self.commands[:, :2], dim=1) < 0.1)
+        return rew * self._upright_factor()
+
+    def _reward_joint_pos_penalty(self):
+        leg_idx = self._get_leg_dof_indices()
+        if leg_idx.numel() == 0:
+            return torch.zeros(self.num_envs, device=self.device)
+
+        cfg = self.cfg.fzqver_rewards
+        cmd = torch.linalg.norm(self.commands[:, :2], dim=1)
+        body_vel = torch.linalg.norm(self.base_lin_vel[:, :2], dim=1)
+        running = torch.linalg.norm(
+            self.dof_pos[:, leg_idx] - self.default_dof_pos[:, leg_idx], dim=1
+        )
+        rew = torch.where(
+            torch.logical_or(
+                cmd > cfg.joint_pos_penalty_command_threshold,
+                body_vel > cfg.joint_pos_penalty_velocity_threshold,
+            ),
+            running,
+            cfg.joint_pos_penalty_stand_still_scale * running,
+        )
+        return rew * self._upright_factor()
+
+    def _reward_joint_mirror(self):
+        pairs = self._get_mirror_dof_pairs()
+        if len(pairs) == 0:
+            return torch.zeros(self.num_envs, device=self.device)
+        rew = torch.zeros(self.num_envs, device=self.device)
+        for li, ri in pairs:
+            rew += torch.square(self.dof_pos[:, li] - self.dof_pos[:, ri])
+        rew = rew / len(pairs)
+        return rew * self._upright_factor()
 
     def _reward_dof_pos_limits(self):
         return super()._reward_dof_pos_limits() * self._upright_factor()
@@ -173,3 +296,27 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
     def _reward_collision(self):
         return super()._reward_collision() * self._upright_factor()
 
+    def _reward_contact_forces(self):
+        wheel_body_idx = self._get_wheel_body_indices()
+        if wheel_body_idx.numel() == 0:
+            return torch.zeros(self.num_envs, device=self.device)
+        forces = torch.norm(self.contact_forces[:, wheel_body_idx, :], dim=-1)
+        rew = torch.sum(
+            (forces - self.cfg.fzqver_rewards.contact_force_threshold).clip(min=0.0), dim=1
+        )
+        return rew * self._upright_factor()
+
+    def _reward_feet_contact_without_cmd(self):
+        wheel_body_idx = self._get_wheel_body_indices()
+        if wheel_body_idx.numel() == 0:
+            return torch.zeros(self.num_envs, device=self.device)
+        contact = (
+            torch.norm(self.contact_forces[:, wheel_body_idx, :], dim=-1)
+            > self.cfg.fzqver_rewards.feet_contact_threshold
+        )
+        rew = torch.sum(contact.float(), dim=-1)
+        rew *= (
+            torch.linalg.norm(self.commands[:, :2], dim=1)
+            < self.cfg.fzqver_rewards.feet_contact_cmd_threshold
+        )
+        return rew * self._upright_factor()
