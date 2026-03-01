@@ -29,6 +29,7 @@
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
 import os
+import inspect
 from datetime import datetime
 from typing import Tuple
 import torch
@@ -85,30 +86,33 @@ class TaskRegistry:
         os.mkdir(self.log_dir)
 
         save_items = [
-            os.path.join(
-                self.log_dir,
-                WHEEL_LEGGED_GYM_ENVS_DIR + "/base/legged_robot.py",
-            ),
-            os.path.join(
-                self.log_dir,
-                WHEEL_LEGGED_GYM_ENVS_DIR + "/base/legged_robot_config.py",
-            ),
-            os.path.join(
-                self.log_dir,
-                WHEEL_LEGGED_GYM_ENVS_DIR
-                + "/{}/".format(name)
-                + "{}_config.py".format(name),
-            ),
+            os.path.join(WHEEL_LEGGED_GYM_ENVS_DIR, "base", "legged_robot.py"),
+            os.path.join(WHEEL_LEGGED_GYM_ENVS_DIR, "base", "legged_robot_config.py"),
         ]
-        py_root = os.path.join(
-            WHEEL_LEGGED_GYM_ENVS_DIR + "/{}/".format(name) + "{}.py".format(name),
-        )
-        if os.path.exists(py_root):
-            save_items.append(os.path.join(self.log_dir, py_root))
-        if save_items is not None:
-            for save_item in save_items:
-                base_file_name = ntpath.basename(save_item)
-                copyfile(save_item, self.log_dir + "/" + base_file_name)
+        legacy_cfg = os.path.join(WHEEL_LEGGED_GYM_ENVS_DIR, name, f"{name}_config.py")
+        legacy_task = os.path.join(WHEEL_LEGGED_GYM_ENVS_DIR, name, f"{name}.py")
+        for maybe_path in (legacy_cfg, legacy_task):
+            if os.path.exists(maybe_path):
+                save_items.append(maybe_path)
+
+        # Support alias task names (e.g. one class with multiple task registrations).
+        task_class = self.get_task_class(name)
+        task_py_path = inspect.getfile(task_class)
+        env_cfg_py_path = inspect.getfile(self.env_cfgs[name].__class__)
+        for maybe_path in (task_py_path, env_cfg_py_path):
+            if os.path.exists(maybe_path):
+                save_items.append(maybe_path)
+
+        unique_items = []
+        seen = set()
+        for path in save_items:
+            if path not in seen:
+                unique_items.append(path)
+                seen.add(path)
+
+        for save_item in unique_items:
+            base_file_name = ntpath.basename(save_item)
+            copyfile(save_item, self.log_dir + "/" + base_file_name)
 
     def make_env(self, name, args=None, env_cfg=None) -> Tuple[VecEnv, LeggedRobotCfg]:
         """Creates an environment either from a registered namme or from the provided config file.

@@ -27,6 +27,11 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
     class domain_rand(WheelLeggedVMCCfg.domain_rand):
         push_robots = False
 
+    class control(WheelLeggedVMCCfg.control):
+        enable_gas_spring = True
+        gas_spring_k = 188.3447
+        gas_spring_b = 1.2055
+
     class rewards(WheelLeggedVMCCfg.rewards):
         class scales(WheelLeggedVMCCfg.rewards.scales):
             # Velocity tracking rewards (Go2W)
@@ -37,12 +42,12 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
             # Root penalties (Go2W)
             lin_vel_z = -2.0
             ang_vel_xy = -0.05
-            base_height = 0.0
+            base_height = 2.0
 
             # Joint penalties (Go2W)
             torques = -2.5e-5
             torques_wheel = 0.0
-            dof_vel = 0.0
+            dof_vel = -2.5e-5
             dof_vel_wheel = 0.0
             dof_acc = -2.5e-7
             dof_acc_wheel = -2.5e-9
@@ -103,3 +108,34 @@ class WheelLeggedFzqverCfgPPO(WheelLeggedVMCCfgPPO):
         num_steps_per_env = 24
         max_iterations = 20000
         save_interval = 100
+
+
+class WheelLeggedFzqverComp8Cfg(WheelLeggedFzqverCfg):
+    class env(WheelLeggedFzqverCfg.env):
+        num_actions = 8
+        num_observations = 29
+        # 3(base_lin_vel) + obs(29) + last_actions(8*2) + dof_acc(6)
+        # + dof_pos(6) + dof_vel(6) + heights(77) + torques(6)
+        # + base_mass_delta(1) + base_com(3) + default_pos_delta(6)
+        # + friction(1) + restitution(1) = 161
+        num_privileged_obs = 161
+
+    class control(WheelLeggedFzqverCfg.control):
+        enable_gas_spring = True
+        enable_policy_gas_compensation = True
+        policy_gas_comp_sigmoid_scale = 1.0
+
+    class rewards(WheelLeggedFzqverCfg.rewards):
+        class scales(WheelLeggedFzqverCfg.rewards.scales):
+            gas_comp_torque = -5e-6
+
+
+class WheelLeggedFzqverComp8CfgPPO(WheelLeggedFzqverCfgPPO):
+    class policy(WheelLeggedFzqverCfgPPO.policy):
+        num_encoder_obs = (
+            WheelLeggedFzqverComp8Cfg.env.obs_history_length
+            * WheelLeggedFzqverComp8Cfg.env.num_observations
+        )
+
+    class runner(WheelLeggedFzqverCfgPPO.runner):
+        experiment_name = "wheel_legged_fzqver_comp8"

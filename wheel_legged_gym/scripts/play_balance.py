@@ -19,6 +19,13 @@ import wheel_legged_gym.envs
 from wheel_legged_gym.utils import get_args, task_registry
 from wheel_legged_gym import WHEEL_LEGGED_GYM_ROOT_DIR
 
+SUPPORTED_TASKS = (
+    "wheel_legged_vmc_balance",
+    "wheel_legged_fzqver",
+    "wheel_legged_fzqver_comp8",
+)
+DEFAULT_TASK = "wheel_legged_vmc_balance"
+
 
 def custom_reset_dofs(env, env_ids):
     """Custom DOF reset with fixed shin joints and randomized thigh joints
@@ -31,6 +38,14 @@ def custom_reset_dofs(env, env_ids):
     4: rf1_Joint (right shin)
     5: r_wheel_Joint (right wheel)
     """
+    if env_ids is None:
+        return
+    if isinstance(env_ids, torch.Tensor):
+        if env_ids.numel() == 0:
+            return
+    elif len(env_ids) == 0:
+        return
+
     # Randomize thigh joints (f0) in range [-3.14, 3.14]
     env.dof_pos[env_ids, 0] = torch.rand(len(env_ids), device=env.device) * 6.28 - 3.14  # lf0
     env.dof_pos[env_ids, 3] = torch.rand(len(env_ids), device=env.device) * 6.28 - 3.14  # rf0
@@ -140,6 +155,12 @@ class BalanceMonitor:
         print("\nVelocities:")
         print(f"  Linear:  [{lin_vel[0]:+6.3f}, {lin_vel[1]:+6.3f}, {lin_vel[2]:+6.3f}] m/s")
         print(f"  Angular: [{ang_vel[0]:+6.3f}, {ang_vel[1]:+6.3f}, {ang_vel[2]:+6.3f}] rad/s")
+        if env.num_actions >= 8:
+            comp_alpha = env.gas_comp_alpha[0].detach().cpu().numpy()
+            comp_force = env.gas_comp_force[0].detach().cpu().numpy()
+            print("\nGas Compensation:")
+            print(f"  Alpha:   [{comp_alpha[0]:.3f}, {comp_alpha[1]:.3f}]")
+            print(f"  Force:   [{comp_force[0]:.2f}, {comp_force[1]:.2f}] N")
         print("\nEpisode Stats:")
         print(f"  Time:        {episode_time:.1f} s  (steps: {self.episode_steps})")
         print(f"  Max Length:  {self.max_episode_length * env.dt:.1f} s  ({self.max_episode_length} steps)")
@@ -154,8 +175,12 @@ class BalanceMonitor:
 
 
 def play(args):
-    args.task = args.task or "wheel_legged_vmc_balance"
+    if not args.task or args.task == "anymal_c_flat":
+        args.task = DEFAULT_TASK
+    if args.task not in SUPPORTED_TASKS:
+        raise ValueError(f"Unsupported task '{args.task}'. Expected one of {SUPPORTED_TASKS}.")
     env_cfg, train_cfg = task_registry.get_cfgs(name=args.task)
+    use_custom_reset = args.task == "wheel_legged_vmc_balance"
 
     # Play configuration
     env_cfg.env.num_envs = 1
@@ -164,21 +189,29 @@ def play(args):
     env_cfg.noise.add_noise = False
     env_cfg.domain_rand.push_robots = False
 
-    # Disable default joint randomization (we'll do custom randomization)
-    env_cfg.domain_rand.randomize_default_dof_pos = False
+    # Disable default joint randomization only when using custom reset.
+    if use_custom_reset:
+        env_cfg.domain_rand.randomize_default_dof_pos = False
 
     # Create environment
     env, _ = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
 
-    # Wrap the reset_idx method to apply custom joint initialization
-    original_reset_idx = env.reset_idx
-    def wrapped_reset_idx(env_ids):
-        original_reset_idx(env_ids)
-        custom_reset_dofs(env, env_ids)
-    env.reset_idx = wrapped_reset_idx
+    if use_custom_reset:
+        # Wrap reset_idx to apply custom joint initialization for balance-debug task.
+        original_reset_idx = env.reset_idx
 
-    # Apply initial custom reset
-    custom_reset_dofs(env, torch.arange(env.num_envs, device=env.device))
+        def wrapped_reset_idx(env_ids):
+            original_reset_idx(env_ids)
+            if isinstance(env_ids, torch.Tensor):
+                if env_ids.numel() == 0:
+                    return
+            elif len(env_ids) == 0:
+                return
+            custom_reset_dofs(env, env_ids)
+
+        env.reset_idx = wrapped_reset_idx
+        # Apply initial custom reset
+        custom_reset_dofs(env, torch.arange(env.num_envs, device=env.device))
 
     obs, obs_history = env.get_observations()
 
@@ -194,58 +227,71 @@ def play(args):
     except Exception as e:
         print(f"Failed to load policy: {e}")
         print("Make sure you have trained the model first:")
-        print("  python wheel_legged_gym/scripts/train.py --task=wheel_legged_vmc_balance")
+        print(f"  python wheel_legged_gym/scripts/train.py --task={args.task}")
         return
 
     # Initialize monitor
     monitor = BalanceMonitor()
 
     # Keyboard subscriptions
-    env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_C, "START")
-    env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_R, "RESET")
-    env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_S, "TOGGLE_STATS")
-    env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_P, "PAUSE")
-    env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_ESCAPE, "EXIT")
+    if env.viewer is not None:
+        env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_C, "START")
+        env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_R, "RESET")
+        env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_S, "TOGGLE_STATS")
+        env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_P, "PAUSE")
+        env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_ESCAPE, "EXIT")
 
     # State variables
-    started = False
+    started = env.viewer is None
     paused = False
 
     print("\n" + "=" * 60)
     print("  Balance Test Started!")
     print("=" * 60)
-    print("\nPress 'C' to start control")
-    print("Press 'R' to reset")
-    print("Press 'S' to toggle statistics")
-    print("Press 'P' to pause/resume")
-    print("Press 'ESC' to exit\n")
+    print(f"\nTask: {args.task}  |  obs_dim={env.num_obs}  action_dim={env.num_actions}")
+    print(f"Reset mode: {'custom_dof_debug_reset' if use_custom_reset else 'task_default_reset'}")
+    if env.viewer is not None:
+        print("\nPress 'C' to start control")
+        print("Press 'R' to reset")
+        print("Press 'S' to toggle statistics")
+        print("Press 'P' to pause/resume")
+        print("Press 'ESC' to exit\n")
+    else:
+        print("\nHeadless mode: control auto-started.\n")
 
     try:
         while True:
             # Handle keyboard events
-            for evt in env.gym.query_viewer_action_events(env.viewer):
-                if evt.action == "START" and evt.value > 0:
-                    started = True
-                    print("\nControl ENABLED - Policy is now active!")
+            if env.viewer is not None:
+                for evt in env.gym.query_viewer_action_events(env.viewer):
+                    if evt.action == "START" and evt.value > 0:
+                        started = True
+                        print("\nControl ENABLED - Policy is now active!")
 
-                elif evt.action == "RESET" and evt.value > 0:
-                    success = monitor.episode_steps > env.max_episode_length * 0.8
-                    monitor.on_reset(success=success)
-                    env.reset_idx(torch.arange(env.num_envs, device=env.device))
-                    started = False
-                    print("\nRESET - Control disabled (custom joint init: thigh random, shin=-0.6)")
+                    elif evt.action == "RESET" and evt.value > 0:
+                        success = monitor.episode_steps > env.max_episode_length * 0.8
+                        monitor.on_reset(success=success)
+                        env.reset_idx(torch.arange(env.num_envs, device=env.device))
+                        started = False
+                        if use_custom_reset:
+                            print(
+                                "\nRESET - Control disabled "
+                                "(custom joint init: thigh random, shin=-0.6)"
+                            )
+                        else:
+                            print("\nRESET - Control disabled (task default reset)")
 
-                elif evt.action == "TOGGLE_STATS" and evt.value > 0:
-                    monitor.show_stats = not monitor.show_stats
-                    print(f"\nStatistics display: {'ON' if monitor.show_stats else 'OFF'}")
+                    elif evt.action == "TOGGLE_STATS" and evt.value > 0:
+                        monitor.show_stats = not monitor.show_stats
+                        print(f"\nStatistics display: {'ON' if monitor.show_stats else 'OFF'}")
 
-                elif evt.action == "PAUSE" and evt.value > 0:
-                    paused = not paused
-                    print(f"\n{'PAUSED' if paused else 'RESUMED'}")
+                    elif evt.action == "PAUSE" and evt.value > 0:
+                        paused = not paused
+                        print(f"\n{'PAUSED' if paused else 'RESUMED'}")
 
-                elif evt.action == "EXIT" and evt.value > 0:
-                    print("\nExiting...")
-                    return
+                    elif evt.action == "EXIT" and evt.value > 0:
+                        print("\nExiting...")
+                        return
 
             if paused:
                 time.sleep(0.1)

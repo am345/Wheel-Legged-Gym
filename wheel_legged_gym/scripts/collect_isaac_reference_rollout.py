@@ -29,7 +29,12 @@ from wheel_legged_gym.utils.task_registry import task_registry  # noqa: E402
 from mujoco_sim.control_config import get_balance_vmc_control_config  # noqa: E402
 from mujoco_sim.policy_loader import PolicyLoader  # noqa: E402
 
-SUPPORTED_TASK = "wheel_legged_vmc_balance"
+SUPPORTED_TASKS = (
+    "wheel_legged_vmc_balance",
+    "wheel_legged_fzqver",
+    "wheel_legged_fzqver_comp8",
+)
+DEFAULT_TASK = "wheel_legged_vmc_balance"
 DEFAULT_CHECKPOINT = "logs/wheel_legged_vmc_balance/Feb23_15-01-26_/model_900.pt"
 
 
@@ -43,7 +48,7 @@ def parse_args() -> argparse.Namespace:
         description="Collect IsaacGym reference rollout for MuJoCo alignment",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--task", type=str, default=SUPPORTED_TASK)
+    parser.add_argument("--task", type=str, default=DEFAULT_TASK)
     parser.add_argument("--checkpoint", type=str, default=DEFAULT_CHECKPOINT)
     parser.add_argument("--steps", type=int, default=500)
     parser.add_argument("--seed", type=int, default=0)
@@ -76,8 +81,8 @@ def parse_args() -> argparse.Namespace:
         help="Optional additional root height offset applied after reset (debug only)",
     )
     args = parser.parse_args()
-    if args.task != SUPPORTED_TASK:
-        parser.error(f"Only {SUPPORTED_TASK} is currently supported")
+    if args.task not in SUPPORTED_TASKS:
+        parser.error(f"Unsupported task '{args.task}'. Expected one of {SUPPORTED_TASKS}")
     if args.steps <= 0:
         parser.error("--steps must be > 0")
     return args
@@ -380,8 +385,8 @@ def main() -> None:
         "num_steps_requested": int(args.steps),
         "num_steps_collected": int(actions_arr.shape[0]),
         "controller_mode": "isaac_training_env_vmc_balance",
-        "obs_dim": 27,
-        "action_dim": 6,
+        "obs_dim": int(env.num_obs),
+        "action_dim": int(env.num_actions),
         "notes": [
             "Collected from IsaacGym training environment using PolicyLoader on checkpoint .pt",
             "Quaternion stored as xyzw in root_state arrays",

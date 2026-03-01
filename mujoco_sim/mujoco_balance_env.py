@@ -8,6 +8,7 @@ Supported controller modes:
 Supported tasks:
 - wheel_legged_vmc_balance
 - wheel_legged_fzqver
+- wheel_legged_fzqver_comp8
 """
 
 from __future__ import annotations
@@ -38,7 +39,11 @@ class MuJoCoBalanceEnv:
 
     SUPPORTED_CONTROLLER_MODES = ("simplified_joint_pd", "vmc_balance_exact")
     SUPPORTED_DOMAIN_RAND_MODES = ("off", "train_ranges")
-    SUPPORTED_TASKS = ("wheel_legged_vmc_balance", "wheel_legged_fzqver")
+    SUPPORTED_TASKS = (
+        "wheel_legged_vmc_balance",
+        "wheel_legged_fzqver",
+        "wheel_legged_fzqver_comp8",
+    )
 
     def __init__(
         self,
@@ -69,6 +74,7 @@ class MuJoCoBalanceEnv:
         self.seed = seed
         self.np_random = np.random.default_rng(seed)
         self.task = task
+        self.action_dim = 8 if self.task == "wheel_legged_fzqver_comp8" else 6
         self.controller_mode = controller_mode
         self.implemented_controller_mode = controller_mode
         self.domain_rand_mode = domain_rand_mode
@@ -83,6 +89,17 @@ class MuJoCoBalanceEnv:
 
         self.cfg = control_cfg if control_cfg is not None else get_balance_vmc_control_config()
         self.fzqver_profile: FzqverSim2SimProfile = self.cfg.fzqver_profile
+        if self.task in ("wheel_legged_fzqver", "wheel_legged_fzqver_comp8"):
+            self.cfg.enable_gas_spring = bool(self.fzqver_profile.enable_gas_spring)
+            self.cfg.gas_spring_k = float(self.fzqver_profile.gas_spring_k)
+            self.cfg.gas_spring_b = float(self.fzqver_profile.gas_spring_b)
+            self.cfg.enable_policy_gas_compensation = bool(
+                self.task == "wheel_legged_fzqver_comp8"
+                and self.fzqver_profile.enable_policy_gas_compensation
+            )
+            self.cfg.policy_gas_comp_sigmoid_scale = float(
+                self.fzqver_profile.policy_gas_comp_sigmoid_scale
+            )
 
         self.mujoco_tuning_profile = get_mujoco_demo_tuning_profile(mujoco_tuning_profile)
         self.mujoco_tuning_profile_name = self.mujoco_tuning_profile.name
@@ -189,7 +206,7 @@ class MuJoCoBalanceEnv:
         self.base_balance_hint_knee_torque = float(self.cfg.balance_hint_knee_torque)
         self.base_enable_balance_hint = bool(self.cfg.enable_balance_hint)
         # fzqver should not use balance hint by default.
-        if self.task == "wheel_legged_fzqver":
+        if self.task in ("wheel_legged_fzqver", "wheel_legged_fzqver_comp8"):
             self.base_enable_balance_hint = False
 
         self.current_default_dof_pos = self.base_default_dof_pos.copy()
@@ -234,7 +251,7 @@ class MuJoCoBalanceEnv:
         self.action_fifo_len = int(np.ceil(delay_ms_max / 1000.0 / self.sim_dt)) + 1
         self.action_delay_max_idx = self.action_fifo_len - 1
         self.action_delay_idx = 0
-        self.action_fifo = np.zeros((self.action_fifo_len, 6), dtype=np.float64)
+        self.action_fifo = np.zeros((self.action_fifo_len, self.action_dim), dtype=np.float64)
 
         # Command state.
         self.current_commands = self.cfg.command_np.copy()
@@ -246,8 +263,8 @@ class MuJoCoBalanceEnv:
         # Episode/state buffers.
         self.max_episode_steps = 3000
         self.episode_steps = 0
-        self.current_action_obs = np.zeros(6, dtype=np.float64)
-        self.last_applied_action = np.zeros(6, dtype=np.float64)
+        self.current_action_obs = np.zeros(self.action_dim, dtype=np.float64)
+        self.last_applied_action = np.zeros(self.action_dim, dtype=np.float64)
         self.last_ctrl = np.zeros(6, dtype=np.float64)
         self.last_reward = 0.0
         self.last_done = False
@@ -271,6 +288,11 @@ class MuJoCoBalanceEnv:
         self.theta0 = np.zeros(2, dtype=np.float64)
         self.L0_dot = np.zeros(2, dtype=np.float64)
         self.theta0_dot = np.zeros(2, dtype=np.float64)
+        self.gas_spring_force = np.zeros(2, dtype=np.float64)
+        self.gas_comp_alpha = np.zeros(2, dtype=np.float64)
+        self.gas_comp_force = np.zeros(2, dtype=np.float64)
+        self.comp_torque_leg = np.zeros(4, dtype=np.float64)
+        self.virtual_leg_force_total = np.zeros(2, dtype=np.float64)
 
         self.last_control_debug: Dict[str, Any] = {}
         self.prompt_torque_triggered_last_step = False
@@ -328,7 +350,7 @@ class MuJoCoBalanceEnv:
 
         self._post_reset_apply_default_state()
         if randomize:
-            if self.task == "wheel_legged_fzqver":
+            if self.task in ("wheel_legged_fzqver", "wheel_legged_fzqver_comp8"):
                 self.current_reset_profile = "fzqver_mixed_random"
                 self._apply_fzqver_root_randomization()
             else:
@@ -362,8 +384,10 @@ class MuJoCoBalanceEnv:
     def step(self, action):
         """Run one control step (100Hz) with decimated MuJoCo substeps."""
         action = np.asarray(action, dtype=np.float64).reshape(-1)
-        if action.shape != (6,):
-            raise ValueError(f"Action shape mismatch: expected (6,), got {action.shape}")
+        if action.shape != (self.action_dim,):
+            raise ValueError(
+                f"Action shape mismatch: expected ({self.action_dim},), got {action.shape}"
+            )
 
         clipped_action = np.clip(action, -self.cfg.clip_actions, self.cfg.clip_actions)
         if not np.allclose(clipped_action, action):
@@ -918,15 +942,59 @@ class MuJoCoBalanceEnv:
 
         torque_leg = self.current_theta_kp * (theta0_ref - self.theta0) - self.current_theta_kd * self.theta0_dot
         force_leg = self.current_l0_kp * (l0_ref - self.L0) - self.current_l0_kd * self.L0_dot
+        if self.cfg.enable_gas_spring:
+            self.gas_spring_force = self.cfg.gas_spring_k * self.L0 + self.cfg.gas_spring_b
+            self.gas_spring_force = np.nan_to_num(
+                self.gas_spring_force, nan=0.0, posinf=0.0, neginf=0.0
+            )
+        else:
+            self.gas_spring_force[:] = 0.0
+        if (
+            self.cfg.enable_policy_gas_compensation
+            and delayed_action.shape[0] >= 8
+        ):
+            raw_comp = delayed_action[6:8]
+            comp_scale = float(self.cfg.policy_gas_comp_sigmoid_scale)
+            self.gas_comp_alpha = 1.0 / (1.0 + np.exp(-(raw_comp * comp_scale)))
+            self.gas_comp_alpha = np.clip(self.gas_comp_alpha, 0.0, 1.0)
+            self.gas_comp_alpha = np.nan_to_num(
+                self.gas_comp_alpha, nan=0.0, posinf=0.0, neginf=0.0
+            )
+        else:
+            self.gas_comp_alpha[:] = 0.0
+        self.gas_comp_force = self.gas_comp_alpha * self.gas_spring_force
+        self.gas_comp_force = np.nan_to_num(
+            self.gas_comp_force, nan=0.0, posinf=0.0, neginf=0.0
+        )
+        self.virtual_leg_force_total = (
+            force_leg
+            + self.current_feedforward_force
+            + self.gas_spring_force
+            - self.gas_comp_force
+        )
+        self.virtual_leg_force_total = np.nan_to_num(
+            self.virtual_leg_force_total, nan=0.0, posinf=0.0, neginf=0.0
+        )
         wheel_vel = self.dof_vel[[2, 5]]
         torque_wheel = self.current_wheel_kd * (wheel_vel_ref - wheel_vel)
 
         T1, T2 = self.vmc.map_virtual_to_joint_torques(
-            F=force_leg + self.current_feedforward_force,
+            F=self.virtual_leg_force_total,
             T=torque_leg,
             theta1=self.theta1,
             theta2=self.theta2,
             L0=self.L0,
+        )
+        T1_comp, T2_comp = self.vmc.map_virtual_to_joint_torques(
+            F=self.gas_comp_force,
+            T=np.zeros(2, dtype=np.float64),
+            theta1=self.theta1,
+            theta2=self.theta2,
+            L0=self.L0,
+        )
+        self.comp_torque_leg = np.array(
+            [T1_comp[0], T2_comp[0], T1_comp[1], T2_comp[1]],
+            dtype=np.float64,
         )
 
         torques = np.array(
@@ -958,6 +1026,11 @@ class MuJoCoBalanceEnv:
             "L0_dot": self.L0_dot.tolist(),
             "torque_leg": torque_leg.tolist(),
             "force_leg": force_leg.tolist(),
+            "gas_spring_force": self.gas_spring_force.tolist(),
+            "gas_comp_alpha": self.gas_comp_alpha.tolist(),
+            "gas_comp_force": self.gas_comp_force.tolist(),
+            "virtual_leg_force_total": self.virtual_leg_force_total.tolist(),
+            "comp_torque_leg": self.comp_torque_leg.tolist(),
             "torque_wheel": torque_wheel.tolist(),
             "T1": np.asarray(T1).tolist(),
             "T2": np.asarray(T2).tolist(),

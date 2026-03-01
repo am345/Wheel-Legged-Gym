@@ -30,7 +30,12 @@ from mujoco_sim.alignment_utils import replay_reference_rollout_in_mujoco
 from mujoco_sim.mujoco_balance_env import MuJoCoBalanceEnv
 from mujoco_sim.policy_loader import PolicyLoader
 
-SUPPORTED_TASK = "wheel_legged_vmc_balance"
+SUPPORTED_TASKS = (
+    "wheel_legged_vmc_balance",
+    "wheel_legged_fzqver",
+    "wheel_legged_fzqver_comp8",
+)
+DEFAULT_TASK = "wheel_legged_vmc_balance"
 DEFAULT_SIMPLE_MODEL = "resources/robots/serialleg/mjcf/serialleg_simple.xml"
 DEFAULT_FIDELITY_MODEL = "resources/robots/serialleg/mjcf/serialleg_fidelity.xml"
 DEFAULT_CHECKPOINT = "logs/wheel_legged_vmc_balance/Feb23_15-01-26_/model_900.pt"
@@ -414,7 +419,7 @@ def parse_args() -> argparse.Namespace:
         description="真实 MuJoCo sim2sim 验证（wheel_legged_vmc_balance）",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--task", type=str, default=SUPPORTED_TASK, help="任务名")
+    parser.add_argument("--task", type=str, default=DEFAULT_TASK, help="任务名")
     parser.add_argument(
         "--checkpoint",
         type=str,
@@ -528,8 +533,8 @@ def parse_args() -> argparse.Namespace:
     parser.set_defaults(randomize_reset=True)
 
     args = parser.parse_args()
-    if args.task != SUPPORTED_TASK:
-        parser.error(f"Unsupported task '{args.task}'. Only '{SUPPORTED_TASK}' is supported.")
+    if args.task not in SUPPORTED_TASKS:
+        parser.error(f"Unsupported task '{args.task}'. Expected one of {SUPPORTED_TASKS}.")
     if args.episodes <= 0:
         parser.error("--episodes must be > 0")
     if args.max_steps <= 0:

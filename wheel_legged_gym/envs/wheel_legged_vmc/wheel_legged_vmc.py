@@ -393,8 +393,56 @@ class LeggedRobotVMC(LeggedRobot):
         self.torque_wheel = self.d_gains[:, [2, 5]] * (
             wheel_vel_ref - self.dof_vel[:, [2, 5]]
         )
-        T1, T2 = self.VMC(
-            self.force_leg + self.cfg.control.feedforward_force, self.torque_leg
+        if (
+            self.cfg.control.enable_policy_gas_compensation
+            and actions.shape[1] >= 8
+        ):
+            raw_comp = actions[:, 6:8]
+            comp_scale = float(self.cfg.control.policy_gas_comp_sigmoid_scale)
+            self.gas_comp_alpha = torch.sigmoid(raw_comp * comp_scale)
+            self.gas_comp_alpha = torch.nan_to_num(
+                self.gas_comp_alpha, nan=0.0, posinf=0.0, neginf=0.0
+            )
+        else:
+            self.gas_comp_alpha.zero_()
+
+        if self.cfg.control.enable_gas_spring:
+            self.gas_spring_force = (
+                self.cfg.control.gas_spring_k * self.L0 + self.cfg.control.gas_spring_b
+            )
+            self.gas_spring_force = torch.nan_to_num(
+                self.gas_spring_force, nan=0.0, posinf=0.0, neginf=0.0
+            )
+        else:
+            self.gas_spring_force.zero_()
+
+        self.gas_comp_force = self.gas_comp_alpha * self.gas_spring_force
+        self.gas_comp_force = torch.nan_to_num(
+            self.gas_comp_force, nan=0.0, posinf=0.0, neginf=0.0
+        )
+        self.virtual_leg_force_total = (
+            self.force_leg
+            + self.cfg.control.feedforward_force
+            + self.gas_spring_force
+            - self.gas_comp_force
+        )
+        self.virtual_leg_force_total = torch.nan_to_num(
+            self.virtual_leg_force_total, nan=0.0, posinf=0.0, neginf=0.0
+        )
+        T1, T2 = self.VMC(self.virtual_leg_force_total, self.torque_leg)
+        zero_leg_torque = torch.zeros_like(self.gas_comp_force)
+        T1_comp, T2_comp = self.VMC(self.gas_comp_force, zero_leg_torque)
+        self.comp_torque_leg = torch.cat(
+            (
+                T1_comp[:, 0].unsqueeze(1),
+                T2_comp[:, 0].unsqueeze(1),
+                T1_comp[:, 1].unsqueeze(1),
+                T2_comp[:, 1].unsqueeze(1),
+            ),
+            axis=1,
+        )
+        self.comp_torque_leg = torch.nan_to_num(
+            self.comp_torque_leg, nan=0.0, posinf=0.0, neginf=0.0
         )
 
         torques = torch.cat(
@@ -446,35 +494,42 @@ class LeggedRobotVMC(LeggedRobot):
         self.add_noise = self.cfg.noise.add_noise
         noise_scales = self.cfg.noise.noise_scales
         noise_level = self.cfg.noise.noise_level
-        # noise_vec[:3] = noise_scales.lin_vel * noise_level * self.obs_scales.lin_vel
-        # noise_vec[3 : 3 + 3] = (
-        #     noise_scales.ang_vel * noise_level * self.obs_scales.ang_vel
-        # )
-        # noise_vec[3 + 3 : 6 + 3] = noise_scales.gravity * noise_level
-        # noise_vec[6 + 3 : 8 + 3] = 0.0  # commands
-        # noise_vec[8 + 3 : 14 + 3] = (
-        #     noise_scales.dof_pos * noise_level * self.obs_scales.dof_pos
-        # )
-        # noise_vec[14 + 3 : 20 + 3] = (
-        #     noise_scales.dof_vel * noise_level * self.obs_scales.dof_vel
-        # )
-        # noise_vec[20 + 3 : 26 + 3] = 0.0  # previous actions
-        noise_vec[:3] = noise_scales.ang_vel * noise_level * self.obs_scales.ang_vel
-        noise_vec[3:6] = noise_scales.gravity * noise_level
-        noise_vec[6:8] = 0.0  # commands
-        noise_vec[8:10] = noise_scales.dof_pos * noise_level * self.obs_scales.dof_pos
-        noise_vec[10:12] = noise_scales.dof_vel * noise_level * self.obs_scales.dof_vel
-        noise_vec[12:14] = noise_scales.l0 * noise_level * self.obs_scales.l0
-        noise_vec[14:16] = noise_scales.l0_dot * noise_level * self.obs_scales.l0_dot
-        noise_vec[16:18] = noise_scales.dof_pos * noise_level * self.obs_scales.dof_pos
-        noise_vec[18:20] = noise_scales.dof_vel * noise_level * self.obs_scales.dof_vel
-        noise_vec[20:26] = 0.0  # previous actions
-        if self.cfg.terrain.measure_heights:
-            noise_vec[48:235] = (
-                noise_scales.height_measurements
-                * noise_level
-                * self.obs_scales.height_measurements
-            )
+        cursor = 0
+        noise_vec[cursor : cursor + 3] = (
+            noise_scales.ang_vel * noise_level * self.obs_scales.ang_vel
+        )
+        cursor += 3
+        noise_vec[cursor : cursor + 3] = noise_scales.gravity * noise_level
+        cursor += 3
+        noise_vec[cursor : cursor + 3] = 0.0  # commands
+        cursor += 3
+        noise_vec[cursor : cursor + 2] = (
+            noise_scales.dof_pos * noise_level * self.obs_scales.dof_pos
+        )
+        cursor += 2
+        noise_vec[cursor : cursor + 2] = (
+            noise_scales.dof_vel * noise_level * self.obs_scales.dof_vel
+        )
+        cursor += 2
+        noise_vec[cursor : cursor + 2] = noise_scales.l0 * noise_level * self.obs_scales.l0
+        cursor += 2
+        noise_vec[cursor : cursor + 2] = (
+            noise_scales.l0_dot * noise_level * self.obs_scales.l0_dot
+        )
+        cursor += 2
+        noise_vec[cursor : cursor + 2] = (
+            noise_scales.dof_pos * noise_level * self.obs_scales.dof_pos
+        )
+        cursor += 2
+        noise_vec[cursor : cursor + 2] = (
+            noise_scales.dof_vel * noise_level * self.obs_scales.dof_vel
+        )
+        cursor += 2
+        action_dim = int(self.num_actions)
+        noise_vec[cursor : cursor + action_dim] = 0.0  # last actions
+        cursor += action_dim
+        if cursor < noise_vec.shape[0]:
+            noise_vec[cursor:] = 0.0
         return noise_vec
 
     # ----------------------------------------
@@ -512,7 +567,7 @@ class LeggedRobotVMC(LeggedRobot):
         )
         self.torques = torch.zeros(
             self.num_envs,
-            self.num_actions,
+            self.num_dof,
             dtype=torch.float,
             device=self.device,
             requires_grad=False,
@@ -696,6 +751,21 @@ class LeggedRobotVMC(LeggedRobot):
         )
         self.theta2 = torch.zeros(
             self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False
+        )
+        self.gas_spring_force = torch.zeros(
+            self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False
+        )
+        self.gas_comp_alpha = torch.zeros(
+            self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False
+        )
+        self.gas_comp_force = torch.zeros(
+            self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False
+        )
+        self.virtual_leg_force_total = torch.zeros(
+            self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False
+        )
+        self.comp_torque_leg = torch.zeros(
+            self.num_envs, 4, dtype=torch.float, device=self.device, requires_grad=False
         )
 
         # joint positions offsets and PD gains

@@ -14,7 +14,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from wheel_legged_gym.rsl_rl.modules.actor_critic_sequence import ActorCriticSequence
 
 
-SUPPORTED_TASKS = ("wheel_legged_vmc_balance", "wheel_legged_fzqver")
+SUPPORTED_TASKS = (
+    "wheel_legged_vmc_balance",
+    "wheel_legged_fzqver",
+    "wheel_legged_fzqver_comp8",
+)
 
 
 @dataclass(frozen=True)
@@ -45,6 +49,13 @@ def get_default_policy_spec(task: str = "wheel_legged_vmc_balance") -> PolicySpe
         return PolicySpec()
     if task == "wheel_legged_fzqver":
         return PolicySpec(
+            actor_hidden_dims=(512, 256, 128),
+            critic_hidden_dims=(512, 256, 128),
+        )
+    if task == "wheel_legged_fzqver_comp8":
+        return PolicySpec(
+            num_obs=29,
+            num_actions=8,
             actor_hidden_dims=(512, 256, 128),
             critic_hidden_dims=(512, 256, 128),
         )

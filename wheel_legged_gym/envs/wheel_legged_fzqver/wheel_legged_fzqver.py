@@ -320,3 +320,8 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
             < self.cfg.fzqver_rewards.feet_contact_cmd_threshold
         )
         return rew * self._upright_factor()
+
+    def _reward_gas_comp_torque(self):
+        if not hasattr(self, "comp_torque_leg"):
+            return torch.zeros(self.num_envs, device=self.device)
+        return torch.sum(torch.square(self.comp_torque_leg), dim=1) * self._upright_factor()
