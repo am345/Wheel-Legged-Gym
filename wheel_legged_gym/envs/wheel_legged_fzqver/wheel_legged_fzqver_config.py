@@ -27,6 +27,10 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
     class domain_rand(WheelLeggedVMCCfg.domain_rand):
         push_robots = False
 
+    class asset(WheelLeggedVMCCfg.asset):
+        # Collision penalty only tracks base-link contacts.
+        penalize_contacts_on = ["base"]
+
     class control(WheelLeggedVMCCfg.control):
         enable_gas_spring = True
         gas_spring_k = 188.3447
