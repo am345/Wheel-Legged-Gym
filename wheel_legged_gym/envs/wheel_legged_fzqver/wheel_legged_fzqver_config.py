@@ -58,8 +58,8 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
             joint_mirror = -0.05
             dof_pos_limits = -5.0
             collision = -1.0
-            contact_forces = -1.5e-4
-            feet_contact_without_cmd = 0.1
+            contact_forces = 0.0
+            feet_contact_without_cmd = 0.0
 
             orientation = 0.0
             nominal_state = 0.0
