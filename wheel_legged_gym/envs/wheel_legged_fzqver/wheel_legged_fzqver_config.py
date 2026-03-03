@@ -33,8 +33,8 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
 
     class control(WheelLeggedVMCCfg.control):
         enable_gas_spring = True
-        gas_spring_k = 188.3447
-        gas_spring_b = 1.2055
+        gas_spring_k = 188.3447 * 1.5
+        gas_spring_b = 1.2055 *1.5
 
     class rewards(WheelLeggedVMCCfg.rewards):
         class scales(WheelLeggedVMCCfg.rewards.scales):
@@ -60,7 +60,7 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
             stand_still = -2.0
             joint_pos_penalty = -1.0
             joint_mirror = -0.05
-            dof_pos_limits = -5.0
+            dof_pos_limits = -0.0
             collision = -1.0
             contact_forces = 0.0
             feet_contact_without_cmd = 0.0
@@ -131,7 +131,7 @@ class WheelLeggedFzqverComp8Cfg(WheelLeggedFzqverCfg):
 
     class rewards(WheelLeggedFzqverCfg.rewards):
         class scales(WheelLeggedFzqverCfg.rewards.scales):
-            gas_comp_torque = -5e-6
+            gas_comp_torque = -2e-6
 
 
 class WheelLeggedFzqverComp8CfgPPO(WheelLeggedFzqverCfgPPO):
