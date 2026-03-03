@@ -229,6 +229,7 @@ class LeggedRobotVMC(LeggedRobot):
         self._reset_root_states(env_ids)
 
         self._resample_commands(env_ids)
+        self._randomize_gas_spring_params(env_ids)
 
         # reset buffers
         self.last_actions[env_ids] = 0.0
@@ -240,6 +241,10 @@ class LeggedRobotVMC(LeggedRobot):
         self.envs_steps_buf[env_ids] = 0
         self.last_dof_pos[env_ids] = self.dof_pos[env_ids]
         self.last_base_position[env_ids] = self.base_position[env_ids]
+        self.gas_spring_force[env_ids] = 0.0
+        self.gas_comp_alpha[env_ids] = 0.0
+        self.gas_comp_force[env_ids] = 0.0
+        self.comp_torque_leg[env_ids] = 0.0
         self.obs_history[env_ids] = 0
         obs_buf = self.compute_proprioception_observations()
         self.obs_history[env_ids] = obs_buf[env_ids].repeat(1, self.obs_history_length)
@@ -399,7 +404,32 @@ class LeggedRobotVMC(LeggedRobot):
         ):
             raw_comp = actions[:, 6:8]
             comp_scale = float(self.cfg.control.policy_gas_comp_sigmoid_scale)
-            self.gas_comp_alpha = torch.sigmoid(raw_comp * comp_scale)
+            target_alpha = torch.sigmoid(raw_comp * comp_scale)
+            alpha_max = max(
+                0.0,
+                float(getattr(self.cfg.control, "policy_gas_comp_alpha_max", 1.0)),
+            )
+            target_alpha = torch.clamp(target_alpha, min=0.0, max=alpha_max)
+
+            warmup_steps = int(
+                max(
+                    0,
+                    int(getattr(self.cfg.control, "policy_gas_comp_warmup_steps", 0)),
+                )
+            )
+            if warmup_steps > 0:
+                warmup_mask = (self.episode_length_buf < warmup_steps).unsqueeze(1)
+                target_alpha = torch.where(
+                    warmup_mask,
+                    torch.zeros_like(target_alpha),
+                    target_alpha,
+                )
+
+            lowpass = float(getattr(self.cfg.control, "policy_gas_comp_lowpass", 1.0))
+            lowpass = min(max(lowpass, 0.0), 1.0)
+            self.gas_comp_alpha = (
+                (1.0 - lowpass) * self.gas_comp_alpha + lowpass * target_alpha
+            )
             self.gas_comp_alpha = torch.nan_to_num(
                 self.gas_comp_alpha, nan=0.0, posinf=0.0, neginf=0.0
             )
@@ -407,9 +437,7 @@ class LeggedRobotVMC(LeggedRobot):
             self.gas_comp_alpha.zero_()
 
         if self.cfg.control.enable_gas_spring:
-            self.gas_spring_force = (
-                self.cfg.control.gas_spring_k * self.L0 + self.cfg.control.gas_spring_b
-            )
+            self.gas_spring_force = self.gas_spring_k_env * self.L0 + self.gas_spring_b_env
             self.gas_spring_force = torch.nan_to_num(
                 self.gas_spring_force, nan=0.0, posinf=0.0, neginf=0.0
             )
@@ -752,6 +780,33 @@ class LeggedRobotVMC(LeggedRobot):
         self.theta2 = torch.zeros(
             self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False
         )
+        scale_cfg = getattr(self.cfg.domain_rand, "gas_spring_scale_range", [1.0, 1.0])
+        self.gas_spring_scale_lo = float(scale_cfg[0])
+        if self.gas_spring_scale_lo <= 0.0:
+            self.gas_spring_scale_lo = 1.0
+        self.gas_spring_k_unit = float(self.cfg.control.gas_spring_k) / self.gas_spring_scale_lo
+        self.gas_spring_b_unit = float(self.cfg.control.gas_spring_b) / self.gas_spring_scale_lo
+        self.gas_spring_scale = torch.full(
+            (self.num_envs, 1),
+            self.gas_spring_scale_lo,
+            dtype=torch.float,
+            device=self.device,
+            requires_grad=False,
+        )
+        self.gas_spring_k_env = torch.full(
+            (self.num_envs, 2),
+            float(self.cfg.control.gas_spring_k),
+            dtype=torch.float,
+            device=self.device,
+            requires_grad=False,
+        )
+        self.gas_spring_b_env = torch.full(
+            (self.num_envs, 2),
+            float(self.cfg.control.gas_spring_b),
+            dtype=torch.float,
+            device=self.device,
+            requires_grad=False,
+        )
         self.gas_spring_force = torch.zeros(
             self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False
         )
@@ -878,5 +933,40 @@ class LeggedRobotVMC(LeggedRobot):
                 )
             ).squeeze(-1)
             self.action_delay_idx = action_delay_idx.long()
+        self._randomize_gas_spring_params(torch.arange(self.num_envs, device=self.device))
+
+    def _randomize_gas_spring_params(self, env_ids):
+        if len(env_ids) == 0:
+            return
+
+        default_scale = float(getattr(self, "gas_spring_scale_lo", 1.0))
+        randomize = bool(getattr(self.cfg.domain_rand, "randomize_gas_spring", False))
+        if randomize:
+            range_cfg = getattr(
+                self.cfg.domain_rand, "gas_spring_scale_range", [default_scale, default_scale]
+            )
+            scale_lo = float(range_cfg[0])
+            scale_hi = float(range_cfg[1])
+            if scale_lo <= 0.0:
+                scale_lo = default_scale if default_scale > 0.0 else 1.0
+            if scale_hi <= 0.0:
+                scale_hi = scale_lo
+            if scale_hi < scale_lo:
+                scale_lo, scale_hi = scale_hi, scale_lo
+            sampled_scale = torch_rand_float(
+                scale_lo, scale_hi, (len(env_ids), 1), device=self.device
+            )
+        else:
+            sampled_scale = torch.full(
+                (len(env_ids), 1), default_scale, dtype=torch.float, device=self.device
+            )
+
+        self.gas_spring_scale[env_ids] = sampled_scale
+        self.gas_spring_k_env[env_ids] = (
+            self.gas_spring_k_unit * sampled_scale
+        ).repeat(1, 2)
+        self.gas_spring_b_env[env_ids] = (
+            self.gas_spring_b_unit * sampled_scale
+        ).repeat(1, 2)
 
     # ------------ reward functions----------------

@@ -20,16 +20,28 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
         heading_command = False
 
         class ranges(WheelLeggedVMCCfg.commands.ranges):
-            lin_vel_x = [-0.8, 0.8]
-            ang_vel_yaw = [-1.5, 1.5]
+            lin_vel_x = [-0.6, 0.6]
+            ang_vel_yaw = [-1.2, 1.2]
             height = [0.20, 0.24]
 
     class domain_rand(WheelLeggedVMCCfg.domain_rand):
+        friction_range = [0.3, 1.5]
+        restitution_range = [0.0, 0.2]
+        added_mass_range = [-1.0, 1.5]
+        randomize_inertia_range = [0.9, 1.1]
+        rand_com_vec = [0.02, 0.02, 0.03]
+        randomize_Kp_range = [0.95, 1.05]
+        randomize_Kd_range = [0.95, 1.05]
+        randomize_motor_torque_range = [0.95, 1.05]
+        randomize_default_dof_pos_range = [-0.02, 0.02]
+        delay_ms_range = [0, 6]
+        randomize_gas_spring = True
+        gas_spring_scale_range = [1.5, 2.0]
         push_robots = False
 
     class asset(WheelLeggedVMCCfg.asset):
         # Collision penalty only tracks base-link contacts.
-        penalize_contacts_on = [ "lf1", "rf1", "base"]
+        penalize_contacts_on = ["base"]
 
     class control(WheelLeggedVMCCfg.control):
         enable_gas_spring = True
@@ -39,29 +51,29 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
     class rewards(WheelLeggedVMCCfg.rewards):
         class scales(WheelLeggedVMCCfg.rewards.scales):
             # Velocity tracking rewards (Go2W)
-            tracking_lin_vel = 3.0
-            tracking_ang_vel = 1.5
-            upward = 1.0
+            tracking_lin_vel = 2.4
+            tracking_ang_vel = 1.1
+            upward = 1.8
 
             # Root penalties (Go2W)
-            lin_vel_z = -2.0
-            ang_vel_xy = -0.05
-            base_height = 2.0
+            lin_vel_z = -2.8
+            ang_vel_xy = -0.12
+            base_height = 2.6
 
             # Joint penalties (Go2W)
-            torques = -2.5e-5
+            torques = -4.5e-5
             torques_wheel = 0.0
-            dof_vel = -2.5e-5
+            dof_vel = -3.5e-5
             dof_vel_wheel = 0.0
             dof_acc = -2.5e-7
             dof_acc_wheel = -2.5e-9
-            power = -2.0e-5
-            action_rate = -0.01
-            stand_still = -2.0
-            joint_pos_penalty = -1.0
-            joint_mirror = -0.05
+            power = -3.5e-5
+            action_rate = -0.02
+            stand_still = -1.2
+            joint_pos_penalty = -0.6
+            joint_mirror = -0.02
             dof_pos_limits = -0.0
-            collision = -1.0
+            collision = -1.2
             contact_forces = 0.0
             feet_contact_without_cmd = 0.0
 
@@ -82,20 +94,28 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
         feet_contact_cmd_threshold = 0.1
 
     class fzqver_reset:
-        upright_ratio = 0.2
-        full_pose = [-3.14, 3.14]
+        upright_ratio = 0.45
+        full_pose = [-2.2, 2.2]
         upright_roll_pitch = [-0.25, 0.25]
         upright_yaw = [-3.14, 3.14]
 
         fallen_z_offset = [0.0, 0.08]
         upright_z_offset = [0.0, 0.03]
 
-        lin_vel = [-0.5, 0.5]
-        ang_vel = [-0.5, 0.5]
+        lin_vel = [-0.25, 0.25]
+        ang_vel = [-0.25, 0.25]
 
     class fzqver_command:
-        stand_env_ratio = 0.35
+        stand_env_ratio = 0.55
         stand_height = 0.22
+
+    class fzqver_curriculum:
+        enable = True
+        ramp_steps = 80000
+        upright_ratio_start = 0.75
+        full_pose_start = [-0.8, 0.8]
+        lin_vel_start = [-0.1, 0.1]
+        ang_vel_start = [-0.1, 0.1]
 
 
 class WheelLeggedFzqverCfgPPO(WheelLeggedVMCCfgPPO):
@@ -127,19 +147,28 @@ class WheelLeggedFzqverComp8Cfg(WheelLeggedFzqverCfg):
     class control(WheelLeggedFzqverCfg.control):
         enable_gas_spring = True
         enable_policy_gas_compensation = True
-        policy_gas_comp_sigmoid_scale = 1.0
+        policy_gas_comp_sigmoid_scale = 0.35
+        policy_gas_comp_warmup_steps = 60
+        policy_gas_comp_alpha_max = 0.7
+        policy_gas_comp_lowpass = 0.2
 
     class rewards(WheelLeggedFzqverCfg.rewards):
         class scales(WheelLeggedFzqverCfg.rewards.scales):
-            gas_comp_torque = -2e-6
+            gas_comp_torque = -2e-5
 
 
 class WheelLeggedFzqverComp8CfgPPO(WheelLeggedFzqverCfgPPO):
     class policy(WheelLeggedFzqverCfgPPO.policy):
+        init_noise_std = 0.25
         num_encoder_obs = (
             WheelLeggedFzqverComp8Cfg.env.obs_history_length
             * WheelLeggedFzqverComp8Cfg.env.num_observations
         )
 
+    class algorithm(WheelLeggedFzqverCfgPPO.algorithm):
+        learning_rate = 5e-4
+        desired_kl = 0.008
+
     class runner(WheelLeggedFzqverCfgPPO.runner):
         experiment_name = "wheel_legged_fzqver_comp8"
+        num_steps_per_env = 48

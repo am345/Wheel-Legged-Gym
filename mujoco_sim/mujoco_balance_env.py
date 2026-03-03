@@ -100,6 +100,15 @@ class MuJoCoBalanceEnv:
             self.cfg.policy_gas_comp_sigmoid_scale = float(
                 self.fzqver_profile.policy_gas_comp_sigmoid_scale
             )
+            self.cfg.policy_gas_comp_warmup_steps = int(
+                self.fzqver_profile.policy_gas_comp_warmup_steps
+            )
+            self.cfg.policy_gas_comp_alpha_max = float(
+                self.fzqver_profile.policy_gas_comp_alpha_max
+            )
+            self.cfg.policy_gas_comp_lowpass = float(
+                self.fzqver_profile.policy_gas_comp_lowpass
+            )
 
         self.mujoco_tuning_profile = get_mujoco_demo_tuning_profile(mujoco_tuning_profile)
         self.mujoco_tuning_profile_name = self.mujoco_tuning_profile.name
@@ -242,6 +251,15 @@ class MuJoCoBalanceEnv:
             "restitution_scalar": base_restitution_proxy,
         }
         self.domain_randomizer = MuJoCoDomainRandomizer(mode=domain_rand_mode)
+        gas_scale_lo = float(self.domain_randomizer.cfg.gas_spring_scale_range[0])
+        if gas_scale_lo <= 0.0:
+            gas_scale_lo = 1.0
+        self.base_gas_spring_scale = gas_scale_lo
+        self.current_gas_spring_scale = float(self.base_gas_spring_scale)
+        self.base_gas_spring_k = float(self.cfg.gas_spring_k)
+        self.base_gas_spring_b = float(self.cfg.gas_spring_b)
+        self.base_gas_spring_k_unit = self.base_gas_spring_k / self.base_gas_spring_scale
+        self.base_gas_spring_b_unit = self.base_gas_spring_b / self.base_gas_spring_scale
         self.current_domain_params: Dict[str, Any] = {"mode": "baseline", "randomized": False}
 
         # Action delay FIFO (max 10ms in training ranges).
@@ -351,8 +369,14 @@ class MuJoCoBalanceEnv:
         self._post_reset_apply_default_state()
         if randomize:
             if self.task in ("wheel_legged_fzqver", "wheel_legged_fzqver_comp8"):
-                self.current_reset_profile = "fzqver_mixed_random"
-                self._apply_fzqver_root_randomization()
+                reset_key = "default" if reset_profile is None else str(reset_profile).strip().lower()
+                if reset_key in ("nominal", "nominal_demo"):
+                    self.current_reset_profile, ranges = self._resolve_reset_profile(reset_key)
+                    self._apply_balance_root_randomization(ranges)
+                    self.current_reset_profile = "fzqver_nominal"
+                else:
+                    self.current_reset_profile = "fzqver_mixed_random"
+                    self._apply_fzqver_root_randomization()
             else:
                 self.current_reset_profile, ranges = self._resolve_reset_profile(reset_profile)
                 self._apply_balance_root_randomization(ranges)
@@ -375,6 +399,11 @@ class MuJoCoBalanceEnv:
         self.prompt_torque_step_count = 0
         self.torque_saturation_count = 0
         self.action_clip_count = 0
+        self.gas_spring_force[:] = 0.0
+        self.gas_comp_alpha[:] = 0.0
+        self.gas_comp_force[:] = 0.0
+        self.comp_torque_leg[:] = 0.0
+        self.virtual_leg_force_total[:] = 0.0
 
         self._resample_commands(force=True)
         self._refresh_state_from_sim(init_from_current=True)
@@ -955,8 +984,16 @@ class MuJoCoBalanceEnv:
         ):
             raw_comp = delayed_action[6:8]
             comp_scale = float(self.cfg.policy_gas_comp_sigmoid_scale)
-            self.gas_comp_alpha = 1.0 / (1.0 + np.exp(-(raw_comp * comp_scale)))
-            self.gas_comp_alpha = np.clip(self.gas_comp_alpha, 0.0, 1.0)
+            target_alpha = 1.0 / (1.0 + np.exp(-(raw_comp * comp_scale)))
+            alpha_max = max(0.0, float(self.cfg.policy_gas_comp_alpha_max))
+            target_alpha = np.clip(target_alpha, 0.0, alpha_max)
+            warmup_steps = max(0, int(self.cfg.policy_gas_comp_warmup_steps))
+            if self.episode_steps < warmup_steps:
+                target_alpha[:] = 0.0
+            lowpass = float(np.clip(self.cfg.policy_gas_comp_lowpass, 0.0, 1.0))
+            self.gas_comp_alpha = (
+                (1.0 - lowpass) * self.gas_comp_alpha + lowpass * target_alpha
+            )
             self.gas_comp_alpha = np.nan_to_num(
                 self.gas_comp_alpha, nan=0.0, posinf=0.0, neginf=0.0
             )
@@ -1039,6 +1076,7 @@ class MuJoCoBalanceEnv:
             "pitch_angle": float(self.pitch_angle),
             "prompt_torque_triggered": bool(prompt_triggered),
             "feedforward_force": float(self.current_feedforward_force),
+            "gas_spring_scale": float(self.current_gas_spring_scale),
             "balance_hint_pitch_threshold_rad": float(self.current_balance_hint_pitch_threshold_rad),
             "balance_hint_knee_torque": float(self.current_balance_hint_knee_torque),
             "mujoco_tuning_profile": self.mujoco_tuning_profile_name,

@@ -126,6 +126,14 @@ class MuJoCoDomainRandomizer:
         else:
             delay_steps = 0
 
+        if cfg.randomize_gas_spring:
+            gas_scale_lo, gas_scale_hi = cfg.gas_spring_scale_range
+            if gas_scale_hi < gas_scale_lo:
+                gas_scale_lo, gas_scale_hi = gas_scale_hi, gas_scale_lo
+            gas_scale = float(rng.uniform(gas_scale_lo, gas_scale_hi))
+        else:
+            gas_scale = float(getattr(env, "base_gas_spring_scale", 1.0))
+
         sample["controller"] = {
             "p_gains_scale": _scale_array((6,), cfg.randomize_Kp, cfg.randomize_Kp_range).tolist(),
             "d_gains_scale": _scale_array((6,), cfg.randomize_Kd, cfg.randomize_Kd_range).tolist(),
@@ -138,6 +146,7 @@ class MuJoCoDomainRandomizer:
             ).tolist(),
             "default_dof_pos_offset": dof_pos_offset.tolist(),
             "action_delay_idx": delay_steps,
+            "gas_spring_scale": gas_scale,
         }
 
         sample["restitution_application"] = "geom_solref_dampratio_proxy"
@@ -167,6 +176,9 @@ class MuJoCoDomainRandomizer:
         env.current_l0_kp[:] = env.base_l0_kp
         env.current_l0_kd[:] = env.base_l0_kd
         env.current_wheel_kd[:] = env.base_wheel_kd
+        env.cfg.gas_spring_k = float(env.base_gas_spring_k)
+        env.cfg.gas_spring_b = float(env.base_gas_spring_b)
+        env.current_gas_spring_scale = float(env.base_gas_spring_scale)
         env.action_delay_idx = 0
         env.current_domain_params = {
             "mode": "baseline",
@@ -247,6 +259,12 @@ class MuJoCoDomainRandomizer:
         env.current_torques_scale[:] = env.base_torques_scale * np.asarray(c["torques_scale"])
         env.current_default_dof_pos[:] = env.base_default_dof_pos + np.asarray(c["default_dof_pos_offset"])
         env.action_delay_idx = int(c["action_delay_idx"])
+        gas_spring_scale = float(c.get("gas_spring_scale", env.base_gas_spring_scale))
+        env.current_gas_spring_scale = gas_spring_scale
+        env.cfg.gas_spring_k = float(env.base_gas_spring_k_unit * gas_spring_scale)
+        env.cfg.gas_spring_b = float(env.base_gas_spring_b_unit * gas_spring_scale)
+        applied["controller"]["gas_spring_k"] = float(env.cfg.gas_spring_k)
+        applied["controller"]["gas_spring_b"] = float(env.cfg.gas_spring_b)
 
         mujoco.mj_setConst(model, data)
         env.current_domain_params = applied
@@ -254,4 +272,3 @@ class MuJoCoDomainRandomizer:
 
     def config_dict(self) -> Dict[str, Any]:
         return asdict(self.cfg)
-
