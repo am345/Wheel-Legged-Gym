@@ -29,7 +29,7 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
 
     class asset(WheelLeggedVMCCfg.asset):
         # Collision penalty only tracks base-link contacts.
-        penalize_contacts_on = ["base"]
+        penalize_contacts_on = [ "lf1", "rf1", "base"]
 
     class control(WheelLeggedVMCCfg.control):
         enable_gas_spring = True

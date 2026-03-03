@@ -20,9 +20,13 @@ from mujoco_sim.mujoco_balance_env import MuJoCoBalanceEnv
 from mujoco_sim.policy_loader import PolicyLoader
 
 
+SUPPORTED_TASKS = ("wheel_legged_fzqver", "wheel_legged_fzqver_comp8")
 DEFAULT_TASK = "wheel_legged_fzqver"
 DEFAULT_MODEL = "resources/robots/serialleg/mjcf/serialleg_fidelity.xml"
-DEFAULT_CHECKPOINT_ROOT = "logs/wheel_legged_fzqver"
+DEFAULT_CHECKPOINT_ROOT_BY_TASK = {
+    "wheel_legged_fzqver": "logs/wheel_legged_fzqver",
+    "wheel_legged_fzqver_comp8": "logs/wheel_legged_fzqver_comp8",
+}
 ESC_KEY = 256  # GLFW_KEY_ESCAPE
 
 
@@ -65,7 +69,14 @@ def _resolve_checkpoint(args: argparse.Namespace) -> Path:
         print(f"[Checkpoint] Using explicit checkpoint: {ckpt}")
         return ckpt
 
-    root = Path(args.checkpoint_root).expanduser().resolve()
+    checkpoint_root = args.checkpoint_root
+    if checkpoint_root is None:
+        checkpoint_root = DEFAULT_CHECKPOINT_ROOT_BY_TASK.get(
+            str(args.task),
+            DEFAULT_CHECKPOINT_ROOT_BY_TASK[DEFAULT_TASK],
+        )
+
+    root = Path(checkpoint_root).expanduser().resolve()
     run_dir, ckpt = _find_latest_checkpoint(root)
     print(f"[Checkpoint] Auto-discovered latest run: {run_dir}")
     print(f"[Checkpoint] Auto-discovered latest checkpoint: {ckpt}")
@@ -130,7 +141,7 @@ def _step_wait_zero_action(
     env: MuJoCoBalanceEnv,
     obs: np.ndarray,
 ) -> Tuple[np.ndarray, float, Dict[str, object], bool]:
-    obs, reward, done, info = env.step(np.zeros(6, dtype=np.float32))
+    obs, reward, done, info = env.step(np.zeros(env.action_dim, dtype=np.float32))
     if done:
         info = dict(info)
         info["termination_reason"] = "waiting_for_start"
@@ -440,14 +451,22 @@ def _print_debug_snapshot(
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="MuJoCo interactive/headless policy demo for wheel_legged_fzqver."
+        description="MuJoCo interactive/headless policy demo for wheel_legged_fzqver tasks."
     )
-    parser.add_argument("--task", default=DEFAULT_TASK, help=f"Task name (default: {DEFAULT_TASK})")
+    parser.add_argument(
+        "--task",
+        default=DEFAULT_TASK,
+        choices=list(SUPPORTED_TASKS),
+        help=f"Task name (default: {DEFAULT_TASK})",
+    )
     parser.add_argument("--checkpoint", default=None, help="Explicit checkpoint path (.pt).")
     parser.add_argument(
         "--checkpoint-root",
-        default=DEFAULT_CHECKPOINT_ROOT,
-        help=f"Checkpoint root for auto-discovery (default: {DEFAULT_CHECKPOINT_ROOT})",
+        default=None,
+        help=(
+            "Checkpoint root for auto-discovery. "
+            "If omitted, uses task-specific default under logs/."
+        ),
     )
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"MJCF path (default: {DEFAULT_MODEL})")
     parser.add_argument(
@@ -736,9 +755,9 @@ def _run_loop(
 
 def main() -> int:
     args = _parse_args()
-    if args.task != DEFAULT_TASK:
+    if args.task not in SUPPORTED_TASKS:
         raise ValueError(
-            f"Unsupported task '{args.task}'. This script currently supports only '{DEFAULT_TASK}'."
+            f"Unsupported task '{args.task}'. Supported tasks: {SUPPORTED_TASKS}."
         )
 
     if args.headless and int(args.max_steps) <= 0:
