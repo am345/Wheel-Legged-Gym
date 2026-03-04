@@ -74,6 +74,8 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
 
     class fzqver_rewards:
         upright_gating_max = 0.7
+        gate_ang_vel_xy_by_upright = True
+        gate_joint_mirror_by_upright = True
         joint_pos_penalty_stand_still_scale = 5.0
         joint_pos_penalty_velocity_threshold = 0.5
         joint_pos_penalty_command_threshold = 0.1
@@ -132,6 +134,10 @@ class WheelLeggedFzqverComp8Cfg(WheelLeggedFzqverCfg):
     class rewards(WheelLeggedFzqverCfg.rewards):
         class scales(WheelLeggedFzqverCfg.rewards.scales):
             gas_comp_torque = -2e-6
+
+    class fzqver_rewards(WheelLeggedFzqverCfg.fzqver_rewards):
+        gate_ang_vel_xy_by_upright = False
+        gate_joint_mirror_by_upright = False
 
 
 class WheelLeggedFzqverComp8CfgPPO(WheelLeggedFzqverCfgPPO):

@@ -197,7 +197,10 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
         return super()._reward_lin_vel_z() * self._upright_factor()
 
     def _reward_ang_vel_xy(self):
-        return super()._reward_ang_vel_xy() * self._upright_factor()
+        rew = super()._reward_ang_vel_xy()
+        if self.cfg.fzqver_rewards.gate_ang_vel_xy_by_upright:
+            return rew * self._upright_factor()
+        return rew
 
     def _reward_base_height(self):
         return super()._reward_base_height() * self._upright_factor()
@@ -288,7 +291,9 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
         for li, ri in pairs:
             rew += torch.square(self.dof_pos[:, li] - self.dof_pos[:, ri])
         rew = rew / len(pairs)
-        return rew * self._upright_factor()
+        if self.cfg.fzqver_rewards.gate_joint_mirror_by_upright:
+            return rew * self._upright_factor()
+        return rew
 
     def _reward_dof_pos_limits(self):
         return super()._reward_dof_pos_limits() * self._upright_factor()
