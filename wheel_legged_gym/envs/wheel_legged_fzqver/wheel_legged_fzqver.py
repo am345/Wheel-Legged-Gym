@@ -48,35 +48,6 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
             return
 
         cfg = self.cfg.fzqver_reset
-        curriculum_cfg = getattr(self.cfg, "fzqver_curriculum", None)
-        if curriculum_cfg is not None and bool(getattr(curriculum_cfg, "enable", False)):
-            ramp_steps = max(1, int(getattr(curriculum_cfg, "ramp_steps", 1)))
-            progress = min(1.0, float(self.common_step_counter) / float(ramp_steps))
-
-            def _lerp(start: float, end: float) -> float:
-                return float(start + progress * (end - start))
-
-            upright_ratio = _lerp(
-                float(curriculum_cfg.upright_ratio_start),
-                float(cfg.upright_ratio),
-            )
-            full_pose = [
-                _lerp(float(curriculum_cfg.full_pose_start[0]), float(cfg.full_pose[0])),
-                _lerp(float(curriculum_cfg.full_pose_start[1]), float(cfg.full_pose[1])),
-            ]
-            lin_vel = [
-                _lerp(float(curriculum_cfg.lin_vel_start[0]), float(cfg.lin_vel[0])),
-                _lerp(float(curriculum_cfg.lin_vel_start[1]), float(cfg.lin_vel[1])),
-            ]
-            ang_vel = [
-                _lerp(float(curriculum_cfg.ang_vel_start[0]), float(cfg.ang_vel[0])),
-                _lerp(float(curriculum_cfg.ang_vel_start[1]), float(cfg.ang_vel[1])),
-            ]
-        else:
-            upright_ratio = float(cfg.upright_ratio)
-            full_pose = [float(cfg.full_pose[0]), float(cfg.full_pose[1])]
-            lin_vel = [float(cfg.lin_vel[0]), float(cfg.lin_vel[1])]
-            ang_vel = [float(cfg.ang_vel[0]), float(cfg.ang_vel[1])]
 
         if self.custom_origins:
             self.root_states[env_ids] = self.base_init_state
@@ -89,7 +60,7 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
             self.root_states[env_ids, :3] += self.env_origins[env_ids]
 
         upright_mask = (
-            torch.rand(len(env_ids), device=self.device) < upright_ratio
+            torch.rand(len(env_ids), device=self.device) < cfg.upright_ratio
         )
         fallen_mask = ~upright_mask
 
@@ -100,13 +71,13 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
         if fallen_mask.any():
             fallen_count = int(fallen_mask.sum().item())
             roll[fallen_mask] = torch_rand_float(
-                full_pose[0], full_pose[1], (fallen_count, 1), device=self.device
+                cfg.full_pose[0], cfg.full_pose[1], (fallen_count, 1), device=self.device
             ).squeeze(1)
             pitch[fallen_mask] = torch_rand_float(
-                full_pose[0], full_pose[1], (fallen_count, 1), device=self.device
+                cfg.full_pose[0], cfg.full_pose[1], (fallen_count, 1), device=self.device
             ).squeeze(1)
             yaw[fallen_mask] = torch_rand_float(
-                full_pose[0], full_pose[1], (fallen_count, 1), device=self.device
+                cfg.full_pose[0], cfg.full_pose[1], (fallen_count, 1), device=self.device
             ).squeeze(1)
             self.root_states[env_ids[fallen_mask], 2] += torch_rand_float(
                 cfg.fallen_z_offset[0],
@@ -142,10 +113,10 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
         self.root_states[env_ids, 3:7] = quat_from_euler_xyz(roll, pitch, yaw)
 
         self.root_states[env_ids, 7:10] = torch_rand_float(
-            lin_vel[0], lin_vel[1], (len(env_ids), 3), device=self.device
+            cfg.lin_vel[0], cfg.lin_vel[1], (len(env_ids), 3), device=self.device
         )
         self.root_states[env_ids, 10:13] = torch_rand_float(
-            ang_vel[0], ang_vel[1], (len(env_ids), 3), device=self.device
+            cfg.ang_vel[0], cfg.ang_vel[1], (len(env_ids), 3), device=self.device
         )
 
         env_ids_int32 = env_ids.to(dtype=torch.int32)

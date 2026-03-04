@@ -47,13 +47,10 @@ class FzqverSim2SimProfile:
     resampling_time_s: float = 5.0
     heading_command: bool = False
     enable_gas_spring: bool = True
-    gas_spring_k: float = 188.3447 * 1.5
-    gas_spring_b: float = 1.2055 * 1.5
+    gas_spring_k: float = 188.3447
+    gas_spring_b: float = 1.2055
     enable_policy_gas_compensation: bool = True
-    policy_gas_comp_sigmoid_scale: float = 0.35
-    policy_gas_comp_warmup_steps: int = 60
-    policy_gas_comp_alpha_max: float = 0.7
-    policy_gas_comp_lowpass: float = 0.2
+    policy_gas_comp_sigmoid_scale: float = 1.0
 
     upright_ratio: float = 0.2
     full_pose: Tuple[float, float] = (-3.14, 3.14)
@@ -113,9 +110,6 @@ class BalanceVMCControlConfig:
     gas_spring_b: float = 1.2055
     enable_policy_gas_compensation: bool = False
     policy_gas_comp_sigmoid_scale: float = 1.0
-    policy_gas_comp_warmup_steps: int = 0
-    policy_gas_comp_alpha_max: float = 1.0
-    policy_gas_comp_lowpass: float = 1.0
 
     # VMC PD gains
     kp_theta: float = 10.0
@@ -237,8 +231,6 @@ class DomainRandTrainRanges:
     randomize_default_dof_pos_range: Tuple[float, float] = (-0.05, 0.05)
     randomize_action_delay: bool = True
     delay_ms_range: Tuple[float, float] = (0.0, 10.0)
-    randomize_gas_spring: bool = True
-    gas_spring_scale_range: Tuple[float, float] = (1.5, 2.0)
 
     push_robots: bool = False
 
