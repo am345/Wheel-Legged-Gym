@@ -42,6 +42,32 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
         if self.commands.shape[1] > 3:
             self.commands[stand_env_ids, 3] = 0.0
 
+    def _reset_dofs(self, env_ids):
+        """Reset DOFs and randomize thigh joints for each reset."""
+        if len(env_ids) == 0:
+            return
+
+        self.dof_pos[env_ids] = self.default_dof_pos[env_ids, :]
+
+        lf0_idx = self.dof_names.index("lf0_Joint") if "lf0_Joint" in self.dof_names else 0
+        rf0_idx = self.dof_names.index("rf0_Joint") if "rf0_Joint" in self.dof_names else 3
+
+        self.dof_pos[env_ids, lf0_idx] = (
+            torch.rand(len(env_ids), device=self.device) * 6.28 - 3.14
+        )
+        self.dof_pos[env_ids, rf0_idx] = (
+            torch.rand(len(env_ids), device=self.device) * 6.28 - 3.14
+        )
+        self.dof_vel[env_ids] = 0.0
+
+        env_ids_int32 = env_ids.to(dtype=torch.int32)
+        self.gym.set_dof_state_tensor_indexed(
+            self.sim,
+            gymtorch.unwrap_tensor(self.dof_state),
+            gymtorch.unwrap_tensor(env_ids_int32),
+            len(env_ids_int32),
+        )
+
     def _reset_root_states(self, env_ids):
         """Go2W-style full random pose reset with a small upright subset."""
         if len(env_ids) == 0:

@@ -213,6 +213,18 @@ def play(args):
         # Apply initial custom reset
         custom_reset_dofs(env, torch.arange(env.num_envs, device=env.device))
 
+    # Torque gate: force zero torques until control is explicitly enabled.
+    control_enabled = {"value": env.viewer is None}
+    zero_torques = torch.zeros_like(env.torques)
+    original_compute_torques = env._compute_torques
+
+    def wrapped_compute_torques(actions):
+        if not control_enabled["value"]:
+            return zero_torques
+        return original_compute_torques(actions)
+
+    env._compute_torques = wrapped_compute_torques
+
     obs, obs_history = env.get_observations()
 
     # Load policy
@@ -242,7 +254,7 @@ def play(args):
         env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_ESCAPE, "EXIT")
 
     # State variables
-    started = env.viewer is None
+    started = control_enabled["value"]
     paused = False
 
     print("\n" + "=" * 60)
@@ -250,6 +262,7 @@ def play(args):
     print("=" * 60)
     print(f"\nTask: {args.task}  |  obs_dim={env.num_obs}  action_dim={env.num_actions}")
     print(f"Reset mode: {'custom_dof_debug_reset' if use_custom_reset else 'task_default_reset'}")
+    print(f"Torque gate: {'enabled' if control_enabled['value'] else 'disabled'}")
     if env.viewer is not None:
         print("\nPress 'C' to start control")
         print("Press 'R' to reset")
@@ -266,20 +279,22 @@ def play(args):
                 for evt in env.gym.query_viewer_action_events(env.viewer):
                     if evt.action == "START" and evt.value > 0:
                         started = True
-                        print("\nControl ENABLED - Policy is now active!")
+                        control_enabled["value"] = True
+                        print("\nControl ENABLED - Policy and torque output are now active!")
 
                     elif evt.action == "RESET" and evt.value > 0:
                         success = monitor.episode_steps > env.max_episode_length * 0.8
                         monitor.on_reset(success=success)
                         env.reset_idx(torch.arange(env.num_envs, device=env.device))
                         started = False
+                        control_enabled["value"] = False
                         if use_custom_reset:
                             print(
                                 "\nRESET - Control disabled "
-                                "(custom joint init: thigh random, shin=-0.6)"
+                                "(custom joint init: thigh random, shin=-0.6, torque gate closed)"
                             )
                         else:
-                            print("\nRESET - Control disabled (task default reset)")
+                            print("\nRESET - Control disabled (task default reset, torque gate closed)")
 
                     elif evt.action == "TOGGLE_STATS" and evt.value > 0:
                         monitor.show_stats = not monitor.show_stats
