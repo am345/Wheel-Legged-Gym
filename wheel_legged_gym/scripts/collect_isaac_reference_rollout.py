@@ -262,7 +262,7 @@ def main() -> None:
     obs, _obs_history = env.get_observations()
 
     policy = PolicyLoader(str(checkpoint_path), device=args.policy_device, task=args.task)
-    policy.reset()
+    policy.reset(initial_obs=tensor_to_numpy(obs[0]).astype(np.float32), history_init="repeat_obs")
 
     contact_index_map = build_contact_index_map(env)
     init_root_state, init_dof_pos, init_dof_vel = get_init_state(env)

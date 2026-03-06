@@ -235,6 +235,12 @@ def play(args):
             env=env, name=args.task, args=args, train_cfg=train_cfg
         )
         policy = ppo_runner.get_inference_policy(device=env.device)
+        if hasattr(env, "set_training_iteration"):
+            env.set_training_iteration(
+                train_cfg.runner.max_iterations, train_cfg.runner.max_iterations
+            )
+            env.reset()
+            obs, obs_history = env.get_observations()
         print("Policy loaded successfully!")
     except Exception as e:
         print(f"Failed to load policy: {e}")

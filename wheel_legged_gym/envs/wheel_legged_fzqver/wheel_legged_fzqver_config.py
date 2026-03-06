@@ -95,6 +95,13 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
         lin_vel = [-0.5, 0.5]
         ang_vel = [-0.5, 0.5]
 
+    class fzqver_reset_curriculum:
+        enabled = True
+        ramp_start_iter = 0
+        ramp_end_frac = 0.6
+        thigh_final_range = [-3.14, 3.14]
+        log_curriculum_stats = True
+
     class fzqver_command:
         stand_env_ratio = 0.35
         stand_height = 0.22

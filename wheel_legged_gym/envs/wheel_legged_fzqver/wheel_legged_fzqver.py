@@ -14,6 +14,44 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
         self, cfg: WheelLeggedFzqverCfg, sim_params, physics_engine, sim_device, headless
     ):
         super().__init__(cfg, sim_params, physics_engine, sim_device, headless)
+        self.reset_curriculum_progress = 1.0
+        self.current_learning_iteration = 0
+        self.max_learning_iterations = 1
+
+    def set_training_iteration(self, current_iter: int, max_iters: int):
+        """Update the reset curriculum progress from the PPO iteration."""
+        self.current_learning_iteration = max(int(current_iter), 0)
+        self.max_learning_iterations = max(int(max_iters), 1)
+
+        cfg = self.cfg.fzqver_reset_curriculum
+        if not cfg.enabled:
+            self.reset_curriculum_progress = 1.0
+            return
+
+        ramp_start_iter = int(cfg.ramp_start_iter)
+        ramp_end_iter = max(
+            int(float(cfg.ramp_end_frac) * self.max_learning_iterations),
+            ramp_start_iter + 1,
+        )
+        progress = (self.current_learning_iteration - ramp_start_iter) / (
+            ramp_end_iter - ramp_start_iter
+        )
+        self.reset_curriculum_progress = float(min(max(progress, 0.0), 1.0))
+
+    def _get_thigh_reset_ranges(self):
+        """Return the current reset sampling range for left and right thighs."""
+        progress = float(self.reset_curriculum_progress)
+        default_angles = self.cfg.init_state.default_joint_angles
+        lf0_default = float(default_angles.get("lf0_Joint", 0.4))
+        rf0_default = float(default_angles.get("rf0_Joint", 0.4))
+        final_min = float(self.cfg.fzqver_reset_curriculum.thigh_final_range[0])
+        final_max = float(self.cfg.fzqver_reset_curriculum.thigh_final_range[1])
+
+        curr_min_l = lf0_default + (final_min - lf0_default) * progress
+        curr_max_l = lf0_default + (final_max - lf0_default) * progress
+        curr_min_r = rf0_default + (final_min - rf0_default) * progress
+        curr_max_r = rf0_default + (final_max - rf0_default) * progress
+        return curr_min_l, curr_max_l, curr_min_r, curr_max_r
 
     def check_termination(self):
         """Go2W-style termination: timeout-only."""
@@ -43,21 +81,40 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
             self.commands[stand_env_ids, 3] = 0.0
 
     def _reset_dofs(self, env_ids):
-        """Reset DOFs and randomize thigh joints for each reset."""
+        """Reset DOFs with a curriculum on thigh randomization difficulty."""
         if len(env_ids) == 0:
             return
 
         self.dof_pos[env_ids] = self.default_dof_pos[env_ids, :]
 
         lf0_idx = self.dof_names.index("lf0_Joint") if "lf0_Joint" in self.dof_names else 0
+        lf1_idx = self.dof_names.index("lf1_Joint") if "lf1_Joint" in self.dof_names else 1
+        lw_idx = (
+            self.dof_names.index("l_wheel_Joint")
+            if "l_wheel_Joint" in self.dof_names
+            else 2
+        )
         rf0_idx = self.dof_names.index("rf0_Joint") if "rf0_Joint" in self.dof_names else 3
+        rf1_idx = self.dof_names.index("rf1_Joint") if "rf1_Joint" in self.dof_names else 4
+        rw_idx = (
+            self.dof_names.index("r_wheel_Joint")
+            if "r_wheel_Joint" in self.dof_names
+            else 5
+        )
+        curr_min_l, curr_max_l, curr_min_r, curr_max_r = self._get_thigh_reset_ranges()
 
         self.dof_pos[env_ids, lf0_idx] = (
-            torch.rand(len(env_ids), device=self.device) * 6.28 - 3.14
+            torch.rand(len(env_ids), device=self.device) * (curr_max_l - curr_min_l)
+            + curr_min_l
         )
         self.dof_pos[env_ids, rf0_idx] = (
-            torch.rand(len(env_ids), device=self.device) * 6.28 - 3.14
+            torch.rand(len(env_ids), device=self.device) * (curr_max_r - curr_min_r)
+            + curr_min_r
         )
+        self.dof_pos[env_ids, lf1_idx] = -0.6
+        self.dof_pos[env_ids, rf1_idx] = -0.6
+        self.dof_pos[env_ids, lw_idx] = 0.0
+        self.dof_pos[env_ids, rw_idx] = 0.0
         self.dof_vel[env_ids] = 0.0
 
         env_ids_int32 = env_ids.to(dtype=torch.int32)
@@ -67,6 +124,22 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
             gymtorch.unwrap_tensor(env_ids_int32),
             len(env_ids_int32),
         )
+
+    def reset_idx(self, env_ids):
+        if len(env_ids) == 0:
+            return
+
+        super().reset_idx(env_ids)
+
+        if not self.cfg.fzqver_reset_curriculum.log_curriculum_stats:
+            return
+
+        curr_min_l, curr_max_l, curr_min_r, curr_max_r = self._get_thigh_reset_ranges()
+        self.extras["episode"]["thigh_reset_curriculum_progress"] = (
+            self.reset_curriculum_progress
+        )
+        self.extras["episode"]["thigh_reset_min"] = min(curr_min_l, curr_min_r)
+        self.extras["episode"]["thigh_reset_max"] = max(curr_max_l, curr_max_r)
 
     def _reset_root_states(self, env_ids):
         """Go2W-style full random pose reset with a small upright subset."""

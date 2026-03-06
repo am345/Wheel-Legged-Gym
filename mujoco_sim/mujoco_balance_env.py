@@ -349,6 +349,8 @@ class MuJoCoBalanceEnv:
         self._apply_mujoco_tuning_profile()
 
         self._post_reset_apply_default_state()
+        if self.task in ("wheel_legged_fzqver", "wheel_legged_fzqver_comp8"):
+            self._apply_play_balance_dof_initialization()
         if randomize:
             if self.task in ("wheel_legged_fzqver", "wheel_legged_fzqver_comp8"):
                 self.current_reset_profile = "fzqver_mixed_random"
@@ -747,6 +749,18 @@ class MuJoCoBalanceEnv:
         self.data.qpos[3:7] = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float64)
         self.data.qvel[0:6] = 0.0
         self.data.qpos[self.joint_qpos_addrs] = self.current_default_dof_pos
+        self.data.qvel[self.joint_dof_addrs] = 0.0
+
+    def _apply_play_balance_dof_initialization(self):
+        """Match play_balance custom reset for leg DOFs."""
+        dof_pos = self.data.qpos[self.joint_qpos_addrs]
+        dof_pos[:] = self.current_default_dof_pos
+        dof_pos[0] = float(self.np_random.uniform(-3.14, 3.14))  # lf0
+        dof_pos[3] = float(self.np_random.uniform(-3.14, 3.14))  # rf0
+        dof_pos[1] = -0.6  # lf1
+        dof_pos[4] = -0.6  # rf1
+        dof_pos[2] = 0.0  # l_wheel
+        dof_pos[5] = 0.0  # r_wheel
         self.data.qvel[self.joint_dof_addrs] = 0.0
 
     def _resolve_reset_profile(self, reset_profile: Optional[str]) -> tuple[str, BalanceResetRanges]:

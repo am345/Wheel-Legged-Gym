@@ -65,10 +65,7 @@ pip install mujoco scipy
 
 2. 类 `play_balance` 的策略交互（随机 reset 后按 `C` 启动策略恢复姿态）
 - `tools/play_mujoco_policy_balance.py`
-<<<<<<< HEAD
 - 推荐先用 `--wait-mode zero_action --reset-profile nominal_demo`（更接近 Isaac `play_balance` 体感）
-=======
->>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 
 详细操作、键位和示例命令见：
 

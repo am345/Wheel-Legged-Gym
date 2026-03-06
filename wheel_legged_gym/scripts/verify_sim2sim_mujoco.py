@@ -651,7 +651,7 @@ def run_preflight_checks(
     if not np.all(np.isfinite(obs)):
         errors.append("Observation contains NaN/Inf during preflight")
 
-    policy.reset()
+    policy.reset(initial_obs=obs, history_init="repeat_obs")
     action = policy.get_action(obs)
     if action.shape != expected_action_shape:
         errors.append(
@@ -874,7 +874,7 @@ def evaluate_single_checkpoint(
         # Re-seed after preflight to make episode randomization sequence reproducible.
         set_global_seed(args.seed, args.device)
         env.np_random = np.random.default_rng(args.seed)
-        policy.reset()
+        policy.reset(history_init="zeros")
 
         metrics = RolloutMetrics(control_dt=env.dt)
         if args.render:
@@ -889,7 +889,7 @@ def evaluate_single_checkpoint(
                 domain_randomize=(args.domain_rand_mode != "off"),
                 reset_profile=args.reset_profile,
             )
-            policy.reset()
+            policy.reset(initial_obs=obs, history_init="repeat_obs")
 
             episode_reward = 0.0
             episode_steps = 0

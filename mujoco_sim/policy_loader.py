@@ -326,5 +326,24 @@ class PolicyLoader:
             )
         return action
 
-    def reset(self) -> None:
+    def reset(
+        self,
+        initial_obs: Optional[np.ndarray] = None,
+        history_init: str = "repeat_obs",
+    ) -> None:
+        if history_init not in ("repeat_obs", "zeros"):
+            raise ValueError(
+                f"Unsupported history_init='{history_init}'. Expected one of ('repeat_obs', 'zeros')."
+            )
+
+        if history_init == "repeat_obs" and initial_obs is not None:
+            obs = np.asarray(initial_obs, dtype=np.float32)
+            if obs.shape != (self.spec.num_obs,):
+                raise ValueError(
+                    "initial_obs shape mismatch for policy.reset(): "
+                    f"expected {(self.spec.num_obs,)}, got {obs.shape}"
+                )
+            self.obs_history = np.tile(obs, self.spec.obs_history_length).astype(np.float32)
+            return
+
         self.obs_history = np.zeros((self.spec.num_encoder_obs,), dtype=np.float32)
