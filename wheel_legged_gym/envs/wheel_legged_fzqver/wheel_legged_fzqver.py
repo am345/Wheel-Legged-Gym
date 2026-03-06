@@ -230,6 +230,14 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
         gate_max = max(float(self.cfg.fzqver_rewards.upright_gating_max), 1e-6)
         return torch.clamp(-self.projected_gravity[:, 2], 0.0, gate_max) / gate_max
 
+    def _all_links_airborne_mask(self):
+        contact_mag = torch.norm(self.contact_forces, dim=-1)
+        any_contact = torch.any(
+            contact_mag > self.cfg.fzqver_rewards.all_links_airborne_contact_threshold,
+            dim=1,
+        )
+        return ~any_contact
+
     def _get_wheel_dof_indices(self):
         if not hasattr(self, "_wheel_dof_idx_cache"):
             wheel_idx = [i for i, n in enumerate(self.dof_names) if "wheel" in n.lower()]
@@ -296,13 +304,14 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
         return super()._reward_lin_vel_z() * self._upright_factor()
 
     def _reward_ang_vel_xy(self):
-        rew = super()._reward_ang_vel_xy()
-        if self.cfg.fzqver_rewards.gate_ang_vel_xy_by_upright:
-            return rew * self._upright_factor()
-        return rew
+        # Keep this penalty active even while fallen to suppress violent recovery spins.
+        return super()._reward_ang_vel_xy()
 
     def _reward_base_height(self):
         return super()._reward_base_height() * self._upright_factor()
+
+    def _reward_all_links_airborne(self):
+        return self._all_links_airborne_mask().float()
 
     def _reward_torques(self):
         leg_idx = self._get_leg_dof_indices()
