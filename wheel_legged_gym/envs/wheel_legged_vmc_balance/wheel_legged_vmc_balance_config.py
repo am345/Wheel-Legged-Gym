@@ -11,7 +11,7 @@ class WheelLeggedVMCBalanceCfg(WheelLeggedVMCCfg):
     """
     Balance task: same as Flat but with random initialization and upward reward
     """
-
+#
     class terrain(WheelLeggedVMCCfg.terrain):
         mesh_type = "plane"
 

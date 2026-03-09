@@ -38,7 +38,7 @@ class LeggedRobotVMCBalance(LeggedRobotVMC):
         """VMC控制计算扭矩（已移除pitch角度提示）"""
         # 调用父类计算正常力矩
         torques = super()._compute_torques(actions)
-
+            #########################
         # 注释掉pitch角度提示，让机器人通过奖励函数学习平衡
         # # 检查pitch角度是否超过阈值（20度 = 0.349 rad）
         # pitch_threshold = 0.349  # 20度
