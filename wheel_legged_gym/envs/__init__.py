@@ -48,8 +48,6 @@ from .wheel_legged_vmc_balance.wheel_legged_vmc_balance_config import (
 from .wheel_legged_fzqver.wheel_legged_fzqver import LeggedRobotVMCFzqver
 from .wheel_legged_fzqver.wheel_legged_fzqver_config import (
     WheelLeggedFzqverCfg,
-    WheelLeggedFzqverComp8Cfg,
-    WheelLeggedFzqverComp8CfgPPO,
     WheelLeggedFzqverCfgPPO,
 )
 
@@ -81,10 +79,4 @@ task_registry.register(
     LeggedRobotVMCFzqver,
     WheelLeggedFzqverCfg(),
     WheelLeggedFzqverCfgPPO(),
-)
-task_registry.register(
-    "wheel_legged_fzqver_comp8",
-    LeggedRobotVMCFzqver,
-    WheelLeggedFzqverComp8Cfg(),
-    WheelLeggedFzqverComp8CfgPPO(),
 )

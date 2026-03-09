@@ -34,7 +34,7 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
     class control(WheelLeggedVMCCfg.control):
         enable_gas_spring = True
         gas_spring_k = 188.3447 * 1.5
-        gas_spring_b = 1.2055 *1.5
+        gas_spring_b = 1.2055 * 1.5
 
     class rewards(WheelLeggedVMCCfg.rewards):
         class scales(WheelLeggedVMCCfg.rewards.scales):
@@ -46,16 +46,16 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
             # Root penalties (Go2W)
             lin_vel_z = -2.0
             ang_vel_xy = -0.05
-            base_height = 2.0
+            base_height = 0.0
 
             # Joint penalties (Go2W)
-            torques = -2.5e-5
+            torques = -5e-5
             torques_wheel = 0.0
-            dof_vel = -2.5e-5
+            dof_vel = -5e-5
             dof_vel_wheel = 0.0
             dof_acc = -2.5e-7
             dof_acc_wheel = -2.5e-9
-            power = -2.0e-5
+            power = -8.0e-5
             action_rate = -0.01
             stand_still = -2.0
             joint_pos_penalty = -1.0
@@ -71,6 +71,10 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
             tracking_ang_vel_enhance = 0.0
             base_height_enhance = 0.0
             action_smooth = 0.0
+            leg_extension_when_fallen = 2.0
+            recovery_angular_velocity = 1.5
+            orientation_refined = -2.0
+            uprightness_shaped = 0.5
 
     class fzqver_rewards:
         upright_gating_max = 0.7
@@ -82,6 +86,12 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
         contact_force_threshold = 100.0
         feet_contact_threshold = 1.0
         feet_contact_cmd_threshold = 0.1
+        fallen_tilt_z_threshold = 0.7
+        nearly_upright_z_threshold = -0.7
+        leg_extension_target_l0 = 0.30
+        leg_extension_sigma = 0.01
+        recovery_ang_vel_gain = 3.0
+        recovery_ang_vel_sigma = 2.0
 
     class fzqver_reset:
         upright_ratio = 0.2
@@ -114,38 +124,3 @@ class WheelLeggedFzqverCfgPPO(WheelLeggedVMCCfgPPO):
         num_steps_per_env = 24
         max_iterations = 20000
         save_interval = 100
-
-
-class WheelLeggedFzqverComp8Cfg(WheelLeggedFzqverCfg):
-    class env(WheelLeggedFzqverCfg.env):
-        num_actions = 8
-        num_observations = 29
-        # 3(base_lin_vel) + obs(29) + last_actions(8*2) + dof_acc(6)
-        # + dof_pos(6) + dof_vel(6) + heights(77) + torques(6)
-        # + base_mass_delta(1) + base_com(3) + default_pos_delta(6)
-        # + friction(1) + restitution(1) = 161
-        num_privileged_obs = 161
-
-    class control(WheelLeggedFzqverCfg.control):
-        enable_gas_spring = True
-        enable_policy_gas_compensation = True
-        policy_gas_comp_sigmoid_scale = 1.0
-
-    class rewards(WheelLeggedFzqverCfg.rewards):
-        class scales(WheelLeggedFzqverCfg.rewards.scales):
-            gas_comp_torque = -2e-6
-
-    class fzqver_rewards(WheelLeggedFzqverCfg.fzqver_rewards):
-        gate_ang_vel_xy_by_upright = False
-        gate_joint_mirror_by_upright = False
-
-
-class WheelLeggedFzqverComp8CfgPPO(WheelLeggedFzqverCfgPPO):
-    class policy(WheelLeggedFzqverCfgPPO.policy):
-        num_encoder_obs = (
-            WheelLeggedFzqverComp8Cfg.env.obs_history_length
-            * WheelLeggedFzqverComp8Cfg.env.num_observations
-        )
-
-    class runner(WheelLeggedFzqverCfgPPO.runner):
-        experiment_name = "wheel_legged_fzqver_comp8"

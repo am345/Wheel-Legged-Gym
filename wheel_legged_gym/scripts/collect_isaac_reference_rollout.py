@@ -32,7 +32,6 @@ from mujoco_sim.policy_loader import PolicyLoader  # noqa: E402
 SUPPORTED_TASKS = (
     "wheel_legged_vmc_balance",
     "wheel_legged_fzqver",
-    "wheel_legged_fzqver_comp8",
 )
 DEFAULT_TASK = "wheel_legged_vmc_balance"
 DEFAULT_CHECKPOINT = "logs/wheel_legged_vmc_balance/Feb23_15-01-26_/model_900.pt"
@@ -262,7 +261,7 @@ def main() -> None:
     obs, _obs_history = env.get_observations()
 
     policy = PolicyLoader(str(checkpoint_path), device=args.policy_device, task=args.task)
-    policy.reset()
+    policy.reset(tensor_to_numpy(obs[0]).astype(np.float32))
 
     contact_index_map = build_contact_index_map(env)
     init_root_state, init_dof_pos, init_dof_vel = get_init_state(env)

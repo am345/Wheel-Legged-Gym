@@ -157,6 +157,14 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
         gate_max = max(float(self.cfg.fzqver_rewards.upright_gating_max), 1e-6)
         return torch.clamp(-self.projected_gravity[:, 2], 0.0, gate_max) / gate_max
 
+    def _fallen_mask(self):
+        threshold = float(self.cfg.fzqver_rewards.fallen_tilt_z_threshold)
+        return torch.abs(self.projected_gravity[:, 2]) < threshold
+
+    def _nearly_upright_mask(self):
+        threshold = float(self.cfg.fzqver_rewards.nearly_upright_z_threshold)
+        return self.projected_gravity[:, 2] < threshold
+
     def _get_wheel_dof_indices(self):
         if not hasattr(self, "_wheel_dof_idx_cache"):
             wheel_idx = [i for i, n in enumerate(self.dof_names) if "wheel" in n.lower()]
@@ -352,7 +360,28 @@ class LeggedRobotVMCFzqver(LeggedRobotVMC):
         )
         return rew * self._upright_factor()
 
-    def _reward_gas_comp_torque(self):
-        if not hasattr(self, "comp_torque_leg"):
-            return torch.zeros(self.num_envs, device=self.device)
-        return torch.sum(torch.square(self.comp_torque_leg), dim=1) * self._upright_factor()
+    def _reward_leg_extension_when_fallen(self):
+        target_l0 = float(self.cfg.fzqver_rewards.leg_extension_target_l0)
+        sigma = float(self.cfg.fzqver_rewards.leg_extension_sigma)
+        leg_extension_error = torch.mean(torch.square(self.L0 - target_l0), dim=1)
+        rew = torch.exp(-leg_extension_error / sigma)
+        return rew * self._fallen_mask().float()
+
+    def _reward_recovery_angular_velocity(self):
+        gain = float(self.cfg.fzqver_rewards.recovery_ang_vel_gain)
+        sigma = float(self.cfg.fzqver_rewards.recovery_ang_vel_sigma)
+        target_ang_vel = -self.projected_gravity[:, :2] * gain
+        ang_vel_error = torch.sum(
+            torch.square(self.base_ang_vel[:, :2] - target_ang_vel),
+            dim=1,
+        )
+        rew = torch.exp(-ang_vel_error / sigma)
+        return rew * self._fallen_mask().float()
+
+    def _reward_uprightness_shaped(self):
+        uprightness = (-self.projected_gravity[:, 2] + 1.0) / 2.0
+        return torch.exp(uprightness * 2.0) - 1.0
+
+    def _reward_orientation_refined(self):
+        orientation_error = torch.sum(torch.square(self.projected_gravity[:, :2]), dim=1)
+        return orientation_error * self._nearly_upright_mask().float()

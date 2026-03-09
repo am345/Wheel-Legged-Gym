@@ -20,12 +20,11 @@ from mujoco_sim.mujoco_balance_env import MuJoCoBalanceEnv
 from mujoco_sim.policy_loader import PolicyLoader
 
 
-SUPPORTED_TASKS = ("wheel_legged_fzqver", "wheel_legged_fzqver_comp8")
+SUPPORTED_TASKS = ("wheel_legged_fzqver",)
 DEFAULT_TASK = "wheel_legged_fzqver"
 DEFAULT_MODEL = "resources/robots/serialleg/mjcf/serialleg_fidelity.xml"
 DEFAULT_CHECKPOINT_ROOT_BY_TASK = {
     "wheel_legged_fzqver": "logs/wheel_legged_fzqver",
-    "wheel_legged_fzqver_comp8": "logs/wheel_legged_fzqver_comp8",
 }
 ESC_KEY = 256  # GLFW_KEY_ESCAPE
 
@@ -605,7 +604,7 @@ def _run_loop(
                 randomize=bool(args.randomize_reset),
                 domain_randomize=bool(args.domain_randomize_reset),
             )
-            policy.reset()
+            policy.reset(obs)
             if kb is not None:
                 kb.mark_reset_complete()
                 if bool(args.start_on_reset):
@@ -641,7 +640,7 @@ def _run_loop(
                 randomize=bool(args.randomize_reset),
                 domain_randomize=bool(args.domain_randomize_reset),
             )
-            policy.reset()
+            policy.reset(obs)
 
         term_reason: Optional[str] = None
         done_env = False
@@ -728,7 +727,7 @@ def _run_loop(
                     randomize=bool(args.randomize_reset),
                     domain_randomize=bool(args.domain_randomize_reset),
                 )
-                policy.reset()
+                policy.reset(obs)
                 if kb is not None:
                     kb.mark_reset_complete()
                     if bool(args.start_on_reset):

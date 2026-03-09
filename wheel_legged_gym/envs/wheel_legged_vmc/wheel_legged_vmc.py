@@ -393,18 +393,6 @@ class LeggedRobotVMC(LeggedRobot):
         self.torque_wheel = self.d_gains[:, [2, 5]] * (
             wheel_vel_ref - self.dof_vel[:, [2, 5]]
         )
-        if (
-            self.cfg.control.enable_policy_gas_compensation
-            and actions.shape[1] >= 8
-        ):
-            raw_comp = actions[:, 6:8]
-            comp_scale = float(self.cfg.control.policy_gas_comp_sigmoid_scale)
-            self.gas_comp_alpha = torch.sigmoid(raw_comp * comp_scale)
-            self.gas_comp_alpha = torch.nan_to_num(
-                self.gas_comp_alpha, nan=0.0, posinf=0.0, neginf=0.0
-            )
-        else:
-            self.gas_comp_alpha.zero_()
 
         if self.cfg.control.enable_gas_spring:
             self.gas_spring_force = (
@@ -416,34 +404,15 @@ class LeggedRobotVMC(LeggedRobot):
         else:
             self.gas_spring_force.zero_()
 
-        self.gas_comp_force = self.gas_comp_alpha * self.gas_spring_force
-        self.gas_comp_force = torch.nan_to_num(
-            self.gas_comp_force, nan=0.0, posinf=0.0, neginf=0.0
-        )
         self.virtual_leg_force_total = (
             self.force_leg
             + self.cfg.control.feedforward_force
             + self.gas_spring_force
-            - self.gas_comp_force
         )
         self.virtual_leg_force_total = torch.nan_to_num(
             self.virtual_leg_force_total, nan=0.0, posinf=0.0, neginf=0.0
         )
         T1, T2 = self.VMC(self.virtual_leg_force_total, self.torque_leg)
-        zero_leg_torque = torch.zeros_like(self.gas_comp_force)
-        T1_comp, T2_comp = self.VMC(self.gas_comp_force, zero_leg_torque)
-        self.comp_torque_leg = torch.cat(
-            (
-                T1_comp[:, 0].unsqueeze(1),
-                T2_comp[:, 0].unsqueeze(1),
-                T1_comp[:, 1].unsqueeze(1),
-                T2_comp[:, 1].unsqueeze(1),
-            ),
-            axis=1,
-        )
-        self.comp_torque_leg = torch.nan_to_num(
-            self.comp_torque_leg, nan=0.0, posinf=0.0, neginf=0.0
-        )
 
         torques = torch.cat(
             (
@@ -755,17 +724,8 @@ class LeggedRobotVMC(LeggedRobot):
         self.gas_spring_force = torch.zeros(
             self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False
         )
-        self.gas_comp_alpha = torch.zeros(
-            self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False
-        )
-        self.gas_comp_force = torch.zeros(
-            self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False
-        )
         self.virtual_leg_force_total = torch.zeros(
             self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False
-        )
-        self.comp_torque_leg = torch.zeros(
-            self.num_envs, 4, dtype=torch.float, device=self.device, requires_grad=False
         )
 
         # joint positions offsets and PD gains

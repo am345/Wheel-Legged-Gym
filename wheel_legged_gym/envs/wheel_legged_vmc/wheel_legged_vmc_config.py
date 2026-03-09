@@ -49,9 +49,7 @@ class WheelLeggedVMCCfg(WheelLeggedCfg):
         feedforward_force = 40.0  # [N]
         enable_gas_spring = False
         gas_spring_k = 188.3447 * 2.0  # [N/m]
-        gas_spring_b = 1.2055 * 2.0 # [N]
-        enable_policy_gas_compensation = False
-        policy_gas_comp_sigmoid_scale = 1.0
+        gas_spring_b = 1.2055 * 2.0  # [N]
 
         kp_theta = 10.0  # [N*m/rad]
         kd_theta = 5  # [N*m*s/rad]5

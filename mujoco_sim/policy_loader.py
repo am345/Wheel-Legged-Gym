@@ -17,7 +17,6 @@ from wheel_legged_gym.rsl_rl.modules.actor_critic_sequence import ActorCriticSeq
 SUPPORTED_TASKS = (
     "wheel_legged_vmc_balance",
     "wheel_legged_fzqver",
-    "wheel_legged_fzqver_comp8",
 )
 
 
@@ -49,13 +48,6 @@ def get_default_policy_spec(task: str = "wheel_legged_vmc_balance") -> PolicySpe
         return PolicySpec()
     if task == "wheel_legged_fzqver":
         return PolicySpec(
-            actor_hidden_dims=(512, 256, 128),
-            critic_hidden_dims=(512, 256, 128),
-        )
-    if task == "wheel_legged_fzqver_comp8":
-        return PolicySpec(
-            num_obs=29,
-            num_actions=8,
             actor_hidden_dims=(512, 256, 128),
             critic_hidden_dims=(512, 256, 128),
         )
@@ -326,5 +318,14 @@ class PolicyLoader:
             )
         return action
 
-    def reset(self) -> None:
-        self.obs_history = np.zeros((self.spec.num_encoder_obs,), dtype=np.float32)
+    def reset(self, initial_obs: Optional[np.ndarray] = None) -> None:
+        if initial_obs is None:
+            self.obs_history = np.zeros((self.spec.num_encoder_obs,), dtype=np.float32)
+            return
+
+        obs = np.asarray(initial_obs, dtype=np.float32)
+        if obs.shape != (self.spec.num_obs,):
+            raise ValueError(
+                f"Initial observation shape mismatch: expected {(self.spec.num_obs,)}, got {obs.shape}"
+            )
+        self.obs_history = np.tile(obs, self.spec.obs_history_length)

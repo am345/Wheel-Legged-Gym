@@ -22,7 +22,6 @@ from wheel_legged_gym import WHEEL_LEGGED_GYM_ROOT_DIR
 SUPPORTED_TASKS = (
     "wheel_legged_vmc_balance",
     "wheel_legged_fzqver",
-    "wheel_legged_fzqver_comp8",
 )
 DEFAULT_TASK = "wheel_legged_vmc_balance"
 
@@ -155,12 +154,6 @@ class BalanceMonitor:
         print("\nVelocities:")
         print(f"  Linear:  [{lin_vel[0]:+6.3f}, {lin_vel[1]:+6.3f}, {lin_vel[2]:+6.3f}] m/s")
         print(f"  Angular: [{ang_vel[0]:+6.3f}, {ang_vel[1]:+6.3f}, {ang_vel[2]:+6.3f}] rad/s")
-        if env.num_actions >= 8:
-            comp_alpha = env.gas_comp_alpha[0].detach().cpu().numpy()
-            comp_force = env.gas_comp_force[0].detach().cpu().numpy()
-            print("\nGas Compensation:")
-            print(f"  Alpha:   [{comp_alpha[0]:.3f}, {comp_alpha[1]:.3f}]")
-            print(f"  Force:   [{comp_force[0]:.2f}, {comp_force[1]:.2f}] N")
         print("\nEpisode Stats:")
         print(f"  Time:        {episode_time:.1f} s  (steps: {self.episode_steps})")
         print(f"  Max Length:  {self.max_episode_length * env.dt:.1f} s  ({self.max_episode_length} steps)")
