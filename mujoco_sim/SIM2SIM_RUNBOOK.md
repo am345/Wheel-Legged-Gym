@@ -182,8 +182,11 @@ python tools/play_mujoco_policy_balance.py \
   --model resources/robots/serialleg/mjcf/serialleg_fidelity.xml \
   --controller-mode vmc_balance_exact \
   --domain-rand-mode off \
+<<<<<<< HEAD
   --wait-mode zero_action \
   --reset-profile nominal_demo \
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
   --gravity on
 ```
 
@@ -191,8 +194,11 @@ python tools/play_mujoco_policy_balance.py \
 
 - 默认会自动扫描 `logs/wheel_legged_vmc_balance/`，选择“最新 run + 最高编号 `model_*.pt`”
 - 如果你希望手动指定 checkpoint，可以加 `--checkpoint <path>`
+<<<<<<< HEAD
 - `--wait-mode zero_action` 更接近 Isaac `play_balance` 体感（未按 `C` 时用零 action 继续走控制链路）
 - `--reset-profile nominal_demo` 用于演示恢复姿态；`random_balance` 更偏压力测试
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 
 ### 核心键位（对齐 `play_balance` 使用习惯）
 
@@ -235,6 +241,7 @@ python tools/play_mujoco_policy_balance.py --hide-left-ui --hide-right-ui
 
 ```bash
 python tools/play_mujoco_policy_balance.py \
+<<<<<<< HEAD
   --checkpoint logs/wheel_legged_vmc_balance/Feb26_13-20-50_/model_2000.pt
 ```
 
@@ -254,6 +261,9 @@ python tools/play_mujoco_policy_balance.py \
   --wait-mode zero_action \
   --reset-profile nominal_demo \
   --no-script-fall-stop
+=======
+  --checkpoint logs/wheel_legged_vmc_balance/Feb26_13-20-50_/model_950.pt
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 ```
 
 ## 5. 上最新 checkpoint 做真实 Sim2Sim（推荐流程）

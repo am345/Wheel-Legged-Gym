@@ -103,7 +103,10 @@ def _step_wait_no_control(env: MuJoCoBalanceEnv, obs: np.ndarray) -> Tuple[np.nd
     env.last_applied_action[:] = 0.0
     env.last_control_debug = {
         "mode": "wait_zero_torque",
+<<<<<<< HEAD
         "torques_pre_clip": [0.0] * 6,
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
         "torques_post_clip": [0.0] * 6,
     }
 
@@ -131,6 +134,7 @@ def _step_wait_no_control(env: MuJoCoBalanceEnv, obs: np.ndarray) -> Tuple[np.nd
     return obs, float(reward), info
 
 
+<<<<<<< HEAD
 def _step_wait_zero_action(env: MuJoCoBalanceEnv, obs: np.ndarray) -> Tuple[np.ndarray, float, Dict[str, object]]:
     """Advance physics through the normal controller path using zero action (Isaac play-like semantics)."""
     obs, reward, done, info = env.step(np.zeros(6, dtype=np.float32))
@@ -158,6 +162,8 @@ def _step_wait_freeze(env: MuJoCoBalanceEnv, obs: np.ndarray) -> Tuple[np.ndarra
     return obs, reward, info
 
 
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 @dataclass
 class PolicyKeyboardState:
     started: bool = False
@@ -197,11 +203,14 @@ class KeyboardController:
             self._state.started = False
             self._state.start_requested = False
 
+<<<<<<< HEAD
     def request_start(self) -> None:
         with self._lock:
             self._state.started = True
             self._state.start_requested = True
 
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
     def key_callback(self, keycode: int) -> None:
         with self._lock:
             if int(keycode) == ESC_KEY:
@@ -279,6 +288,7 @@ def _print_help() -> None:
     print("")
 
 
+<<<<<<< HEAD
 def _flagged_joint_names(dbg: Dict[str, object], flag_key: str) -> list[str]:
     names = list(dbg.get("joint_names") or [])
     flags = list(dbg.get(flag_key) or [])
@@ -289,6 +299,8 @@ def _flagged_joint_names(dbg: Dict[str, object], flag_key: str) -> list[str]:
     return out
 
 
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 def _print_banner(args: argparse.Namespace, checkpoint_path: Path, env: MuJoCoBalanceEnv) -> None:
     print("\n" + "=" * 80)
     print("MuJoCo Policy Balance Interactive Demo")
@@ -302,12 +314,16 @@ def _print_banner(args: argparse.Namespace, checkpoint_path: Path, env: MuJoCoBa
     print(f"domain_randomize_rst: {args.domain_randomize_reset}")
     print(f"gravity:              {args.gravity}")
     print(f"start_enabled:        {args.start_enabled}")
+<<<<<<< HEAD
     print(f"start_on_reset:       {args.start_on_reset}")
     print(f"wait_mode:            {args.wait_mode}")
     print(f"reset_profile:        {args.reset_profile}")
     print(f"fall_tilt_deg:        {args.eval_fall_tilt_deg}")
     print(f"no_script_fall_stop:  {args.no_script_fall_stop}")
     print(f"mujoco_tuning_profile:{args.mujoco_tuning_profile}")
+=======
+    print(f"fall_tilt_deg:        {args.eval_fall_tilt_deg}")
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
     print(f"seed/device:          {args.seed} / {args.device}")
     print(f"fidelity_level:       {env.fidelity_level}")
     print("=" * 80)
@@ -323,6 +339,7 @@ def _print_step_stats(
     dbg: Dict[str, object],
     state: Dict[str, object],
     termination_reason: Optional[str],
+<<<<<<< HEAD
     show_diagnosis_compact: bool = True,
 ) -> None:
     tilt_deg = float(dbg.get("tilt_deg", _compute_tilt_deg(np.asarray(dbg["projected_gravity"], dtype=float))))
@@ -336,12 +353,22 @@ def _print_step_stats(
         f"step={total_steps:05d} "
         f"reward={reward:+.4f} "
         f"wait={dbg.get('wait_mode', 'n/a')} "
+=======
+) -> None:
+    tilt_deg = _compute_tilt_deg(np.asarray(dbg["projected_gravity"], dtype=float))
+    print(
+        f"step={total_steps:05d} "
+        f"reward={reward:+.4f} "
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
         f"started={state['started']} paused={state['paused']} gravity={'on' if state['gravity_on'] else 'off'} "
         f"pitch={dbg['pitch_angle']:+.3f} tilt={tilt_deg:6.2f}deg "
         f"L0={np.round(np.asarray(dbg['L0'], dtype=float), 4).tolist()} "
         f"theta0={np.round(np.asarray(dbg['theta0'], dtype=float), 4).tolist()} "
         f"ctrl={np.round(np.asarray(dbg['last_ctrl'], dtype=float), 3).tolist()} "
+<<<<<<< HEAD
         f"{diag_extra}"
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
         f"contacts={dbg['contacts']} "
         f"term={termination_reason or info.get('termination_reason', 'running')}"
     )
@@ -356,7 +383,11 @@ def _print_debug_snapshot(
     state: Dict[str, object],
 ) -> None:
     dbg = env.get_debug_state()
+<<<<<<< HEAD
     tilt_deg = float(dbg.get("tilt_deg", _compute_tilt_deg(np.asarray(dbg["projected_gravity"], dtype=float))))
+=======
+    tilt_deg = _compute_tilt_deg(np.asarray(dbg["projected_gravity"], dtype=float))
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
     print("\n" + "-" * 80)
     print(f"Debug snapshot @ step {total_steps}")
     print(
@@ -376,6 +407,7 @@ def _print_debug_snapshot(
     )
     print(f"last_ctrl={np.round(np.asarray(dbg['last_ctrl'], dtype=float), 6).tolist()}")
     print(f"last_applied_action={np.round(np.asarray(dbg['last_applied_action'], dtype=float), 6).tolist()}")
+<<<<<<< HEAD
     print(
         f"sat_flags={dbg.get('torque_saturation_flags')} "
         f"limit_flags={dbg.get('joint_limit_hit_flags')} "
@@ -386,6 +418,8 @@ def _print_debug_snapshot(
         f"prompt_steps={dbg.get('prompt_torque_step_count')} "
         f"torque_sat_count={dbg.get('torque_saturation_count')}"
     )
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
     print(f"contacts={dbg['contacts']}")
     print(f"control_debug={dbg.get('control_debug')}")
     print("-" * 80 + "\n")
@@ -414,12 +448,15 @@ def _parse_args() -> argparse.Namespace:
         choices=["off", "train_ranges"],
         help="Env DR mode. Interactive demo default is off.",
     )
+<<<<<<< HEAD
     parser.add_argument(
         "--mujoco-tuning-profile",
         default="exact_baseline",
         choices=["exact_baseline", "demo_tuned"],
         help="MuJoCo-only tuning profile (exact_baseline for real line, demo_tuned for demo line).",
     )
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--device", default="cpu")
 
@@ -443,6 +480,7 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Apply episode DR on reset (default off; usually keep off for demos).",
     )
+<<<<<<< HEAD
     parser.add_argument(
         "--reset-profile",
         default="nominal_demo",
@@ -455,10 +493,13 @@ def _parse_args() -> argparse.Namespace:
         choices=["zero_action", "zero_torque", "freeze"],
         help="Behavior before pressing C (zero_action matches Isaac play_balance semantics better).",
     )
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
     parser.add_argument("--gravity", choices=["on", "off"], default="on")
     parser.add_argument("--print-every", type=int, default=20)
     parser.add_argument("--sleep", type=float, default=0.01)
     parser.add_argument("--eval-fall-tilt-deg", type=float, default=60.0)
+<<<<<<< HEAD
     parser.add_argument(
         "--no-script-fall-stop",
         action="store_true",
@@ -485,6 +526,10 @@ def _parse_args() -> argparse.Namespace:
         help="Hide compact diagnostic columns in step prints.",
     )
     parser.set_defaults(show_diagnosis_compact=True)
+=======
+    parser.add_argument("--auto-reset-on-done", action="store_true")
+    parser.add_argument("--start-enabled", action="store_true")
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
     parser.add_argument("--max-steps", type=int, default=0, help="0 means unlimited.")
     parser.add_argument("--show-left-ui", action="store_true", default=True)
     parser.add_argument("--hide-left-ui", dest="show_left_ui", action="store_false")
@@ -512,7 +557,10 @@ def main() -> int:
         seed=int(args.seed),
         controller_mode=str(args.controller_mode),
         domain_rand_mode=str(args.domain_rand_mode),
+<<<<<<< HEAD
         mujoco_tuning_profile=str(args.mujoco_tuning_profile),
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
     )
     if int(args.max_steps) > 0:
         env.max_episode_steps = int(args.max_steps)
@@ -535,6 +583,7 @@ def main() -> int:
     obs = env.reset(
         randomize=bool(args.randomize_reset),
         domain_randomize=bool(args.domain_randomize_reset),
+<<<<<<< HEAD
         reset_profile=str(args.reset_profile),
     )
     policy.reset()
@@ -542,6 +591,11 @@ def main() -> int:
     env.wait_mode = str(args.wait_mode)
     if bool(args.start_on_reset) and not bool(args.start_enabled):
         kb.request_start()
+=======
+    )
+    policy.reset()
+    _set_gravity(env, gravity_on=(args.gravity == "on"))
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 
     if obs.shape != (27,):
         raise RuntimeError(f"Unexpected observation shape after reset: {obs.shape}")
@@ -551,10 +605,14 @@ def main() -> int:
     print(f"obs.shape={tuple(obs.shape)}")
     print(f"model diagnostics={env.get_model_diagnostics()}")
     _print_banner(args, checkpoint_path, env)
+<<<<<<< HEAD
     print(
         "[INFO] Policy starts DISABLED. "
         f"Wait mode='{args.wait_mode}' (physics behavior before C). Press C to start.\n"
     )
+=======
+    print("[INFO] Policy starts DISABLED. Physics advances with ZERO TORQUES until you press C.\n")
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 
     total_steps = 0
     last_reward = 0.0
@@ -583,16 +641,23 @@ def main() -> int:
                 obs = env.reset(
                     randomize=bool(args.randomize_reset),
                     domain_randomize=bool(args.domain_randomize_reset),
+<<<<<<< HEAD
                     reset_profile=str(args.reset_profile),
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
                 )
                 policy.reset()
                 kb.mark_reset_complete()
                 _set_gravity(env, bool(state["gravity_on"]))
+<<<<<<< HEAD
                 env.wait_mode = str(args.wait_mode)
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
                 episode_done = False
                 episode_term_reason = None
                 print(
                     "[INFO] Environment reset complete "
+<<<<<<< HEAD
                     f"(randomize_reset={args.randomize_reset}, "
                     f"domain_randomize_reset={args.domain_randomize_reset}, "
                     f"reset_profile={args.reset_profile}). "
@@ -601,6 +666,11 @@ def main() -> int:
                 if bool(args.start_on_reset):
                     kb.request_start()
                     print("[INFO] START auto-requested after reset.")
+=======
+                    f"(randomize_reset={args.randomize_reset}, domain_randomize_reset={args.domain_randomize_reset}). "
+                    "Press C to start policy."
+                )
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
                 if not np.all(np.isfinite(obs)):
                     print("[WARN] Observation contains NaN/Inf immediately after reset.")
 
@@ -622,7 +692,10 @@ def main() -> int:
                 )
 
             if bool(state["paused"]):
+<<<<<<< HEAD
                 env.wait_mode = "paused"
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
                 viewer.sync()
                 time.sleep(max(float(args.sleep), 0.01))
                 continue
@@ -631,7 +704,10 @@ def main() -> int:
             done_env = False
 
             if bool(state["started"]) and not episode_done:
+<<<<<<< HEAD
                 env.wait_mode = "policy"
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
                 action = policy.get_action(obs)
                 if not np.all(np.isfinite(action)):
                     episode_done = True
@@ -654,15 +730,20 @@ def main() -> int:
                     term_reason = "nan_detected"
                 else:
                     tilt_deg = _compute_tilt_deg(np.asarray(env.projected_gravity, dtype=float))
+<<<<<<< HEAD
                     if (
                         (not bool(args.no_script_fall_stop))
                         and float(args.eval_fall_tilt_deg) > 0
                         and tilt_deg > float(args.eval_fall_tilt_deg)
                     ):
+=======
+                    if float(args.eval_fall_tilt_deg) > 0 and tilt_deg > float(args.eval_fall_tilt_deg):
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
                         term_reason = "fall_tilt"
                     elif bool(done_env):
                         term_reason = str(info.get("termination_reason", "timeout"))
             else:
+<<<<<<< HEAD
                 # Before pressing C (or after a latched terminal), advance according to configured wait mode.
                 if str(args.wait_mode) == "zero_action":
                     env.wait_mode = "zero_action"
@@ -673,6 +754,11 @@ def main() -> int:
                 else:
                     env.wait_mode = "freeze"
                     obs, reward, info = _step_wait_freeze(env, obs)
+=======
+                # Before pressing C (or after a latched terminal), keep real physics running
+                # with zero torques so the robot obeys gravity/contact and does not "freeze".
+                obs, reward, info = _step_wait_no_control(env, obs)
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
                 last_reward = float(reward)
                 last_info = info
                 total_steps += 1
@@ -686,7 +772,10 @@ def main() -> int:
                     dbg=dbg,
                     state=state,
                     termination_reason=term_reason,
+<<<<<<< HEAD
                     show_diagnosis_compact=bool(args.show_diagnosis_compact),
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
                 )
 
             if term_reason is not None:
@@ -701,11 +790,15 @@ def main() -> int:
                     obs = env.reset(
                         randomize=bool(args.randomize_reset),
                         domain_randomize=bool(args.domain_randomize_reset),
+<<<<<<< HEAD
                         reset_profile=str(args.reset_profile),
+=======
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
                     )
                     policy.reset()
                     kb.mark_reset_complete()
                     _set_gravity(env, bool(state["gravity_on"]))
+<<<<<<< HEAD
                     env.wait_mode = str(args.wait_mode)
                     episode_done = False
                     episode_term_reason = None
@@ -713,6 +806,11 @@ def main() -> int:
                     if bool(args.start_on_reset):
                         kb.request_start()
                         print("[INFO] START auto-requested after auto-reset.")
+=======
+                    episode_done = False
+                    episode_term_reason = None
+                    print("[INFO] Auto-reset complete (policy remains disabled; press C to start).")
+>>>>>>> 310d9402ea53126106695598c1daedb2f6e66e6e
 
             if float(args.sleep) > 0:
                 time.sleep(float(args.sleep))

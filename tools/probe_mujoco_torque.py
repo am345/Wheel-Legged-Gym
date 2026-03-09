@@ -69,7 +69,7 @@ def main() -> int:
         if not ckpt.exists():
             raise FileNotFoundError(f"checkpoint not found: {ckpt}")
         policy = PolicyLoader(checkpoint_path=str(ckpt), task=str(args.task), device="cpu")
-        policy.reset(initial_obs=obs, history_init="repeat_obs")
+        policy.reset()
 
     for t in range(1, int(args.steps) + 1):
         if args.mode == "policy":
@@ -80,7 +80,7 @@ def main() -> int:
                     randomize=bool(args.randomize_reset),
                     domain_randomize=bool(args.domain_randomize_reset),
                 )
-                policy.reset(initial_obs=obs, history_init="repeat_obs")
+                policy.reset()
         else:
             env.data.ctrl[:] = args.manual_ctrl
             for _ in range(env.decimation):

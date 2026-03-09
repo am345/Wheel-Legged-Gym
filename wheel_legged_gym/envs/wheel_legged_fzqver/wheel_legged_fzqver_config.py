@@ -45,9 +45,8 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
 
             # Root penalties (Go2W)
             lin_vel_z = -2.0
-            ang_vel_xy = -0.20
+            ang_vel_xy = -0.05
             base_height = 2.0
-            all_links_airborne = -1.0
 
             # Joint penalties (Go2W)
             torques = -2.5e-5
@@ -83,7 +82,6 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
         contact_force_threshold = 100.0
         feet_contact_threshold = 1.0
         feet_contact_cmd_threshold = 0.1
-        all_links_airborne_contact_threshold = 1.0
 
     class fzqver_reset:
         upright_ratio = 0.2
@@ -96,13 +94,6 @@ class WheelLeggedFzqverCfg(WheelLeggedVMCCfg):
 
         lin_vel = [-0.5, 0.5]
         ang_vel = [-0.5, 0.5]
-
-    class fzqver_reset_curriculum:
-        enabled = True
-        ramp_start_iter = 0
-        ramp_end_frac = 0.6
-        thigh_final_range = [-3.14, 3.14]
-        log_curriculum_stats = True
 
     class fzqver_command:
         stand_env_ratio = 0.35

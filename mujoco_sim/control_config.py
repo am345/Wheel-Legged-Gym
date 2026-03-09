@@ -47,8 +47,8 @@ class FzqverSim2SimProfile:
     resampling_time_s: float = 5.0
     heading_command: bool = False
     enable_gas_spring: bool = True
-    gas_spring_k: float = 188.3447 * 1.5
-    gas_spring_b: float = 1.2055 * 1.5
+    gas_spring_k: float = 188.3447
+    gas_spring_b: float = 1.2055
     enable_policy_gas_compensation: bool = True
     policy_gas_comp_sigmoid_scale: float = 1.0
 

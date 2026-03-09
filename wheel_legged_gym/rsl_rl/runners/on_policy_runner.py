@@ -86,20 +86,12 @@ class OnPolicyRunner:
         self.tot_time = 0
         self.current_learning_iteration = 0
 
-        self._set_env_training_iteration(self.current_learning_iteration)
         _, _ = self.env.reset()
-
-    def _set_env_training_iteration(self, it: int):
-        if hasattr(self.env, "set_training_iteration"):
-            self.env.set_training_iteration(it, self.cfg["max_iterations"])
 
     def learn(self, num_learning_iterations, init_at_random_ep_len=False):
         # initialize writer
         if self.log_dir is not None and self.writer is None:
             self.writer = SummaryWriter(log_dir=self.log_dir, flush_secs=10)
-        self._set_env_training_iteration(self.current_learning_iteration)
-        if self.current_learning_iteration > 0:
-            _, _ = self.env.reset()
         if init_at_random_ep_len:
             self.env.episode_length_buf = torch.randint_like(
                 self.env.episode_length_buf, high=int(self.env.max_episode_length)
@@ -126,7 +118,6 @@ class OnPolicyRunner:
 
         tot_iter = self.current_learning_iteration + num_learning_iterations
         for it in range(self.current_learning_iteration, tot_iter):
-            self._set_env_training_iteration(it)
             start = time.time()
             # Rollout
             with torch.inference_mode():
@@ -181,23 +172,13 @@ class OnPolicyRunner:
             learn_time = stop - start
             if self.log_dir is not None:
                 self.log(locals())
-            self.current_learning_iteration = it + 1
-            if (
-                self.log_dir is not None
-                and self.current_learning_iteration % self.save_interval == 0
-            ):
-                self.save(
-                    os.path.join(
-                        self.log_dir, "model_{}.pt".format(self.current_learning_iteration)
-                    )
-                )
+            if it % self.save_interval == 0:
+                self.save(os.path.join(self.log_dir, "model_{}.pt".format(it)))
             ep_infos.clear()
-        if self.log_dir is not None:
-            self.save(
-                os.path.join(
-                    self.log_dir, "model_{}.pt".format(self.current_learning_iteration)
-                )
-            )
+        self.current_learning_iteration = num_learning_iterations
+        self.save(
+            os.path.join(self.log_dir, "model_{}.pt".format(num_learning_iterations))
+        )
 
     def log(self, locs, width=80, pad=35):
         self.tot_timesteps += self.num_steps_per_env * self.env.num_envs

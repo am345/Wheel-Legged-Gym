@@ -505,7 +505,7 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--wait-mode",
-        default="zero_torque",
+        default="zero_action",
         choices=["zero_action", "zero_torque", "freeze"],
         help="Behavior before pressing C.",
     )
@@ -605,7 +605,7 @@ def _run_loop(
                 randomize=bool(args.randomize_reset),
                 domain_randomize=bool(args.domain_randomize_reset),
             )
-            policy.reset(initial_obs=obs, history_init="repeat_obs")
+            policy.reset()
             if kb is not None:
                 kb.mark_reset_complete()
                 if bool(args.start_on_reset):
@@ -641,7 +641,7 @@ def _run_loop(
                 randomize=bool(args.randomize_reset),
                 domain_randomize=bool(args.domain_randomize_reset),
             )
-            policy.reset(initial_obs=obs, history_init="repeat_obs")
+            policy.reset()
 
         term_reason: Optional[str] = None
         done_env = False
@@ -728,7 +728,7 @@ def _run_loop(
                     randomize=bool(args.randomize_reset),
                     domain_randomize=bool(args.domain_randomize_reset),
                 )
-                policy.reset(initial_obs=obs, history_init="repeat_obs")
+                policy.reset()
                 if kb is not None:
                     kb.mark_reset_complete()
                     if bool(args.start_on_reset):
